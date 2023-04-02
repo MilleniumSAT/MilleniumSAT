@@ -17,7 +17,10 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <stdio.h>
 #include "main.h"
+#include "rm3100_i2c.h"
+#include "tmp100_i2c.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -101,6 +104,18 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+	  RM3100_DATA mag = rm3100_loop();
+	  TMP100_DATA temp = tmp100_loop(MUL_12_bit);
+
+
+	  char MSG[100] = {'\0'};
+	  float t = temp.temp * 100;
+
+	  sprintf(MSG, "x = %ld, y = %ld, z = %ld, temp = %u.%u C\r\n",
+			  mag.x, mag.y, mag.z, (unsigned int)t / 100, (unsigned int) t%100);
+
+	  HAL_UART_Transmit(&huart1, (uint8_t *) MSG, sizeof(MSG), 100);
+	  HAL_Delay(1000); /*tefst*/
 
     /* USER CODE BEGIN 3 */
   }
@@ -266,6 +281,10 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
+
+  /*Configuração dos sensores */
+   rm3100_setup(&GPIO_InitStruct);
+   tmp100_setup();
 }
 
 /* USER CODE BEGIN 4 */

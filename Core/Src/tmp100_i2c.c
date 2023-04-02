@@ -4,9 +4,9 @@
  * Last modified: 30/03/2013
  * Description: I2C library for the TMP3100 sensor using stm32.
  */
-#include "tmp100.h"
 #include "stm32l0xx_hal.h"
 #include <limits.h>
+#include <tmp100_i2c.h>
 
 HAL_StatusTypeDef tmp100_status;
 
