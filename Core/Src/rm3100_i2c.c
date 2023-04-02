@@ -1,10 +1,10 @@
 /*
  * Author: Lucas de Jesus B. Gonçalves
- * 
- * Last modified: 30/03/2013
+ *
+ * Last modified: 02/04/2023
  * Description: I2C library for the RM3100 sensor using stm32.
  */
-#include "rm3100.h"
+#include <rm3100_i2c.h>
 #include <stdio.h>
 
 uint8_t revid;
@@ -18,7 +18,7 @@ void uart_print(char *msg, int dbg_enabled)
 {
 	if (!dbg_enabled) return;
 
-	HAL_UART_Transmit(&huart2, (uint8_t *) msg, sizeof(msg), 100);
+	HAL_UART_Transmit(&huart1, (uint8_t *) msg, sizeof(msg), 100);
 	HAL_Delay(1000);
 }
 

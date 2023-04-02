@@ -1,12 +1,12 @@
 /*
  * Author: Lucas de Jesus B. Gonçalves
  *
- * Last modified: 30/03/2013
+ * Last modified: 02/04/2023
  * Description: I2C library for the RM3100 sensor using stm32.
  */
 
-#ifndef RM3100_H
-#define RM3100_H
+#ifndef RM3100_I2C_H
+#define RM3100_I2C_H
 
 #include <stdint.h>
 #include "stm32l0xx_hal.h"
@@ -49,7 +49,7 @@ typedef struct
 } RM3100_DATA;
 
 /*variáveis externas (criadas no main do código do stm32)*/
-extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart1;
 extern I2C_HandleTypeDef hi2c1;
 
 /*
