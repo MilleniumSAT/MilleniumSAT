@@ -1,7 +1,7 @@
 /*
  * Author: Lucas de Jesus B. Gonçalves
  *
- * Last modified: 30/03/2013
+ * Last modified: 02/04/2023
  * Description: I2C library for the RM3100 sensor using stm32.
  */
 
