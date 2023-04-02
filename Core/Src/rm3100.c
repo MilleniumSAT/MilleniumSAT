@@ -116,7 +116,7 @@ void wait_dr()
 {
 	if(USE_DR_PIN)
 	{
-		while(HAL_GPIO_ReadPin(GPIOE, DR_PIN) == GPIO_PIN_RESET); /* checa o pino de data ready*/
+		while(HAL_GPIO_ReadPin(GPIOB, DR_PIN) == GPIO_PIN_RESET); /* checa o pino de data ready*/
 		return;
 	}
 	uint8_t status;

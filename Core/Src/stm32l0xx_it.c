@@ -64,7 +64,7 @@
 /*           Cortex-M0+ Processor Interruption and Exception Handlers          */
 /******************************************************************************/
 /**
-  * @brief This function handles Non maskable Interrupt.
+  * @brief This function handles Non maskable interrupt.
   */
 void NMI_Handler(void)
 {

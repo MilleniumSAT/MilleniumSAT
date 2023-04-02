@@ -19,7 +19,7 @@
 #define RM3100_ADDR 0x21
 
 /*Definição de pino Data Ready*/
-#define DR_PIN GPIO_PIN_8 //Set pin D8 to be the Data Ready Pin
+#define DR_PIN GPIO_PIN_3 //Set pin D8 to be the Data Ready Pin
 
 /* Endereços dos registradores internos sem o bit de R/W (vide datasheet) */
 #define REVID_REG 0x36 	/* Endereço hexadecimal para o registrador Revid */
