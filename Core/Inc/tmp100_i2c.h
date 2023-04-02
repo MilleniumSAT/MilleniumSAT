@@ -6,8 +6,8 @@
  */
 
 
-#ifndef TMP100_H
-#define TMP100_H
+#ifndef TMP100_I2C_H
+#define TMP100_I2C_H
 
 #include <stdint.h>
 #include "stm32l0xx_hal.h"
@@ -58,7 +58,7 @@ typedef struct
 } TMP100_DATA;
 
 /*variáveis externas (criadas no main do código do stm32)*/
-extern UART_HandleTypeDef uart2;
+extern UART_HandleTypeDef uart1;
 extern I2C_HandleTypeDef hi2c1;
 
 
