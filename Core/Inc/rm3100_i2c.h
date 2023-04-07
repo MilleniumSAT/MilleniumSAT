@@ -20,6 +20,7 @@
 
 /*Definição de pino Data Ready*/
 #define DR_PIN GPIO_PIN_3 //Set pin D8 to be the Data Ready Pin
+#define DR_GPIO GPIOB
 
 /* Endereços dos registradores internos sem o bit de R/W (vide datasheet) */
 #define REVID_REG 0x36 	/* Endereço hexadecimal para o registrador Revid */
@@ -49,20 +50,20 @@ typedef struct
 } RM3100_DATA;
 
 /*variáveis externas (criadas no main do código do stm32)*/
-extern UART_HandleTypeDef huart1;
-extern I2C_HandleTypeDef hi2c1;
+extern UART_HandleTypeDef *uart_handle;
+extern I2C_HandleTypeDef *i2c_handle;
 
 /*
  * addr é o valor de 7 bits do endereço do registrador, data é o valor de 8
  * bits referente ao dado a ser escrito
  */
-void rm3100_write_reg(uint8_t addr, uint8_t *data);
+void RM3100_I2C_WRITE(uint8_t addr, uint8_t *data);
 
 /*
  * addr é o valor de 7 bits do endereço do registrador, data é o valor de 8
  * bits referente ao dado a ser lido
  */
-void rm3100_read_reg(uint8_t addr, uint8_t *data);
+void RM3100_I2C_READ(uint8_t addr, uint8_t *data);
 
 /*
  *  Faz a mudança do Cycle Count. Default = 200

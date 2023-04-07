@@ -18,7 +18,7 @@ void uart_print(char *msg, int dbg_enabled)
 {
 	if (!dbg_enabled) return;
 
-	HAL_UART_Transmit(&huart1, (uint8_t *) msg, sizeof(msg), 100);
+	HAL_UART_Transmit(uart_handle, (uint8_t *) msg, sizeof(msg), 100);
 	HAL_Delay(1000);
 }
 
@@ -26,19 +26,19 @@ void uart_print(char *msg, int dbg_enabled)
  * addr é o valor de 7 bits do endereço do registrador, data é o valor de 8
  * bits referente ao dado a ser escrito
  */
-void rm3100_write_reg(uint8_t addr, uint8_t *data){
+void RM3100_I2C_WRITE(uint8_t addr, uint8_t *data){
 	/* << 1 por conta do endereçamento de  7 bits (o ultimo bit é definido pelo i2c)*/
-	HAL_I2C_Mem_Write(&hi2c1, (RM3100_ADDR << 1), (addr << 1), I2C_MEMADD_SIZE_8BIT, data, 1, HAL_MAX_DELAY );
+	HAL_I2C_Mem_Write(i2c_handle, (RM3100_ADDR << 1), (addr << 1), I2C_MEMADD_SIZE_8BIT, data, 1, HAL_MAX_DELAY );
 }
 
 /*
  * addr é o valor de 7 bits do endereço do registrador, data é o valor de 8
  * bits referente ao dado a ser lido
  */
-void rm3100_read_reg(uint8_t addr, uint8_t *data)
+void RM3100_I2C_READ(uint8_t addr, uint8_t *data)
 {
   /* << 1 por conta do endereçamento de  7 bits (o ultimo bit é definido pelo i2c)*/
-  HAL_I2C_Mem_Read(&hi2c1, (RM3100_ADDR << 1), (addr << 1), I2C_MEMADD_SIZE_8BIT, data, 1, HAL_MAX_DELAY );
+  HAL_I2C_Mem_Read(i2c_handle, (RM3100_ADDR << 1), (addr << 1), I2C_MEMADD_SIZE_8BIT, data, 1, HAL_MAX_DELAY );
 }
 
 
@@ -58,7 +58,7 @@ void change_cc(uint16_t new_cc)
 	};
 
 	/* << 1 por conta do endereçamento de  7 bits (o ultimo bit é definido pelo i2c)*/
-	HAL_I2C_Mem_Write(&hi2c1, (RM3100_ADDR << 1), (CCX1_REG << 1), I2C_MEMADD_SIZE_8BIT, buffer, 6, HAL_MAX_DELAY );
+	HAL_I2C_Mem_Write(i2c_handle, (RM3100_ADDR << 1), (CCX1_REG << 1), I2C_MEMADD_SIZE_8BIT, buffer, 6, HAL_MAX_DELAY );
 }
 
 /* Faz a configuração da conexão com o stm32*/
@@ -68,10 +68,10 @@ void rm3100_setup(GPIO_InitTypeDef *GPIO_InitStruct)
 	GPIO_InitStruct->Pin = DR_PIN;
 	GPIO_InitStruct->Mode = GPIO_MODE_INPUT;
 	GPIO_InitStruct->Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOC, GPIO_InitStruct);
+	HAL_GPIO_Init(DR_GPIO, GPIO_InitStruct);
 
 	/*faz a leitura do Revid e em seguida printa no uart*/
-	rm3100_read_reg(REVID_REG, &revid);
+	RM3100_I2C_READ(REVID_REG, &revid);
 
 	/*deve ser 0x22*/
 	sprintf(msg, "REVID ID = 0x%d", revid);
@@ -81,8 +81,8 @@ void rm3100_setup(GPIO_InitTypeDef *GPIO_InitStruct)
 	change_cc((uint16_t) INITIAL_CC);
 
 	uint8_t cc_tmp1, cc_tmp2;
-	rm3100_read_reg(CCX1_REG, &cc_tmp1);
-	rm3100_read_reg(CCX0_REG, &cc_tmp2);
+	RM3100_I2C_READ(CCX1_REG, &cc_tmp1);
+	RM3100_I2C_READ(CCX0_REG, &cc_tmp2);
 
 	cycle_count = (((uint16_t) cc_tmp1) << 8) | ((uint16_t) cc_tmp2);
 
@@ -99,15 +99,15 @@ void rm3100_setup(GPIO_InitTypeDef *GPIO_InitStruct)
 	if (SINGLE_MODE)
 	{	/*Ativa o single mode*/
 		tmp  = 0;
-		rm3100_write_reg(CMM_REG, &tmp);
+		RM3100_I2C_WRITE(CMM_REG, &tmp);
 		tmp  = 0x70;
-		rm3100_write_reg(POLL_REG, &tmp);
+		RM3100_I2C_WRITE(POLL_REG, &tmp);
 	}
 	else
 	{
 		/*Permite a transmissão de medidas contínuas com as funções de alarme desligadas */
 		tmp = 0x79;
-		rm3100_write_reg(CMM_REG, &tmp);
+		RM3100_I2C_WRITE(CMM_REG, &tmp);
 	}
 }
 
@@ -116,13 +116,13 @@ void wait_dr()
 {
 	if(USE_DR_PIN)
 	{
-		while(HAL_GPIO_ReadPin(GPIOB, DR_PIN) == GPIO_PIN_RESET); /* checa o pino de data ready*/
+		while(HAL_GPIO_ReadPin(DR_GPIO, DR_PIN) == GPIO_PIN_RESET); /* checa o pino de data ready*/
 		return;
 	}
 	uint8_t status;
 	do
 	{
-		rm3100_read_reg(STATUS_REG, &status);
+		RM3100_I2C_READ(STATUS_REG, &status);
 	}
 	while((status & 0x80) != 0x80); /* lê o status interno do registrador */
 }
@@ -157,10 +157,10 @@ RM3100_DATA rm3100_loop()
 
 	/* requisita do primeiro registrador de resultados */
 	tmp = 0x24;
-	HAL_I2C_Master_Transmit(&hi2c1, (RM3100_ADDR << 1), &tmp, 1, HAL_MAX_DELAY);
+	HAL_I2C_Master_Transmit(i2c_handle, (RM3100_ADDR << 1), &tmp, 1, HAL_MAX_DELAY);
 
 	/* faz a leitura da requisição */
-	HAL_I2C_Master_Receive(&hi2c1, (RM3100_ADDR << 1), readings, 9, HAL_MAX_DELAY);
+	HAL_I2C_Master_Receive(i2c_handle, (RM3100_ADDR << 1), readings, 9, HAL_MAX_DELAY);
 
 	/* formata os resultados em valores de 32 bits (com sinal) */
 	data_format(&dados, readings);

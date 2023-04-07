@@ -51,6 +51,15 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
+/*
+ *  Variáveis do tipo Handle utilizadas nas bibliotecas dos sensores utilizados
+ *  Devem obrigatoriamente ser declaradas em algum lugar para que as bibliotecas
+ *  possam ser utilizadas
+ */
+SPI_HandleTypeDef *spi_handle;
+I2C_HandleTypeDef *i2c_handle;
+UART_HandleTypeDef *uart_handle;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,14 +108,15 @@ int main(void)
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_SPI2_Init();
-  /* USER CODE BEGIN 2 */
 
+  /* USER CODE BEGIN 2 */
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  /*
 	  RM3100_DATA mag = rm3100_loop();
 	  TMP100_DATA temp = tmp100_loop(MUL_12_bit);
 
@@ -118,7 +128,8 @@ int main(void)
 			  mag.x, mag.y, mag.z, (unsigned int)t / 100, (unsigned int) t%100);
 
 	  HAL_UART_Transmit(&huart1, (uint8_t *) MSG, sizeof(MSG), 100);
-	  HAL_Delay(1000); /*tefst*/
+	  HAL_Delay(1000);
+	  */
 
     /* USER CODE END WHILE */
 
@@ -220,6 +231,8 @@ static void MX_I2C1_Init(void)
   }
   /* USER CODE BEGIN I2C1_Init 2 */
 
+  /* Atribuição de hi2c1 como handle spi */
+  i2c_handle = &hi2c1;
   /* USER CODE END I2C1_Init 2 */
 
 }
@@ -256,8 +269,10 @@ static void MX_SPI2_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN SPI2_Init 2 */
 
+  /* USER CODE BEGIN SPI2_Init 2 */
+  /* Atribui a variável para o spi do RM3100 */
+  spi_handle = &hspi2;
   /* USER CODE END SPI2_Init 2 */
 
 }
@@ -292,7 +307,7 @@ static void MX_USART1_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
-
+  uart_handle = &huart1;
   /* USER CODE END USART1_Init 2 */
 
 }

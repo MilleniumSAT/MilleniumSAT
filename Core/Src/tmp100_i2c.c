@@ -16,7 +16,7 @@ HAL_StatusTypeDef tmp100_status;
  */
 void tmp100_write_reg(uint8_t addr, uint8_t *data){
 	/* << 1 por conta do endereçamento de  7 bits (o ultimo bit é definido pelo i2c)*/
-	HAL_I2C_Mem_Write(&hi2c1, (TMP100_ADDR << 1), (addr << 1), I2C_MEMADD_SIZE_8BIT, data, 1, HAL_MAX_DELAY );
+	HAL_I2C_Mem_Write(i2c_handle, (TMP100_ADDR << 1), (addr << 1), I2C_MEMADD_SIZE_8BIT, data, 1, HAL_MAX_DELAY );
 }
 
 /*
@@ -26,7 +26,7 @@ void tmp100_write_reg(uint8_t addr, uint8_t *data){
 uint8_t tmp100_read_reg(uint8_t addr, uint8_t *data)
 {
 	/* << 1 por conta do endereçamento de  7 bits (o ultimo bit é definido pelo i2c)*/
-	tmp100_status = HAL_I2C_Mem_Read(&hi2c1, (TMP100_ADDR << 1), (addr << 1), I2C_MEMADD_SIZE_8BIT, data, 2, HAL_MAX_DELAY );
+	tmp100_status = HAL_I2C_Mem_Read(i2c_handle, (TMP100_ADDR << 1), (addr << 1), I2C_MEMADD_SIZE_8BIT, data, 2, HAL_MAX_DELAY );
 
 	if ( tmp100_status != HAL_OK )
 		return 1;

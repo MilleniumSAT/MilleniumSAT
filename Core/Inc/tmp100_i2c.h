@@ -58,8 +58,8 @@ typedef struct
 } TMP100_DATA;
 
 /*variáveis externas (criadas no main do código do stm32)*/
-extern UART_HandleTypeDef uart1;
-extern I2C_HandleTypeDef hi2c1;
+extern UART_HandleTypeDef *uart_handle;
+extern I2C_HandleTypeDef *i2c_handle;
 
 
 /*
