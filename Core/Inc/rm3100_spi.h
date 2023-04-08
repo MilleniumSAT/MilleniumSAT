@@ -75,6 +75,12 @@ void RM3100_SPI_READ(uint8_t addr, uint8_t *data, uint16_t size);
 void RM3100_SPI_CHANGE_CC(uint16_t new_cc);
 
 /*
+ * RM3100_SPI_SETUP: Faz a configuração da conexão com o stm32
+ * ----------------------------------------------------------------------
+ */
+void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct);
+
+/*
  *  RM3100_SPI_DATA: Função que deve ficar em loop, retorna uma struct contendo os dados de leitura
  *  ---------------------------------------------------------------------
  */

@@ -116,9 +116,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  /*
-	  RM3100_DATA mag = rm3100_loop();
-	  TMP100_DATA temp = tmp100_loop(MUL_12_bit);
+
+	  RM3100_DATA mag = RM3100_SPI_DATA();
+	  TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
 
 
 	  char MSG[100] = {'\0'};
@@ -129,7 +129,7 @@ int main(void)
 
 	  HAL_UART_Transmit(&huart1, (uint8_t *) MSG, sizeof(MSG), 100);
 	  HAL_Delay(1000);
-	  */
+
 
     /* USER CODE END WHILE */
 
@@ -349,8 +349,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
-//rm3100_setup(&GPIO_InitStruct);
-  tmp100_setup();
+  RM3100_SPI_SETUP(&GPIO_InitStruct);
+  TMP100_I2C_SETUP();
 /* USER CODE END MX_GPIO_Init_2 */
 }
 

@@ -14,7 +14,7 @@ HAL_StatusTypeDef tmp100_status;
  * addr é o valor de 7 bits do endereço do registrador, data é o valor de 8
  * bits referente ao dado a ser escrito
  */
-void tmp100_write_reg(uint8_t addr, uint8_t *data){
+void TMP100_I2C_WRITE(uint8_t addr, uint8_t *data){
 	/* << 1 por conta do endereçamento de  7 bits (o ultimo bit é definido pelo i2c)*/
 	HAL_I2C_Mem_Write(i2c_handle, (TMP100_ADDR << 1), (addr << 1), I2C_MEMADD_SIZE_8BIT, data, 1, HAL_MAX_DELAY );
 }
@@ -23,7 +23,7 @@ void tmp100_write_reg(uint8_t addr, uint8_t *data){
  * addr é o valor de 7 bits do endereço do registrador, data é o ponteiro para um buffer de 16 bits
  * referente ao dado a ser lido
  */
-uint8_t tmp100_read_reg(uint8_t addr, uint8_t *data)
+uint8_t TMP100_I2C_READ(uint8_t addr, uint8_t *data)
 {
 	/* << 1 por conta do endereçamento de  7 bits (o ultimo bit é definido pelo i2c)*/
 	tmp100_status = HAL_I2C_Mem_Read(i2c_handle, (TMP100_ADDR << 1), (addr << 1), I2C_MEMADD_SIZE_8BIT, data, 2, HAL_MAX_DELAY );
@@ -34,21 +34,21 @@ uint8_t tmp100_read_reg(uint8_t addr, uint8_t *data)
 }
 
 /*faz a configuração do tmp100*/
-void tmp100_setup()
+void TMP100_I2C_SETUP()
 {
 	/* modo parão: disable shutdown, comparator mode, active low, 1 consecutive fault
 	 * resolução de 12 bits
 	 */
 	uint8_t resolution = RESOLUTION_12_BIT;
-	tmp100_write_reg(CONFIG_REG, &resolution);
+	TMP100_I2C_WRITE(CONFIG_REG, &resolution);
 }
-TMP100_DATA tmp100_loop(int conv_const)
+TMP100_DATA TMP100_I2C_DATA(int conv_const)
 {
 	TMP100_DATA dados;
 
 	/* Faz a leitura do ADC*/
 	uint8_t adc_data[2]={0,0};
-	dados.status = tmp100_read_reg(TEMP_REG, adc_data);
+	dados.status = TMP100_I2C_READ(TEMP_REG, adc_data);
 
 	/* combina os bytes */
 	int16_t val = ((int16_t)adc_data[0] << 4) | (adc_data[1] >> 4);

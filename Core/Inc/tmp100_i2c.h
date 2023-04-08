@@ -66,17 +66,17 @@ extern I2C_HandleTypeDef *i2c_handle;
  * addr é o valor de 7 bits do endereço do registrador, data é o valor de 8
  * bits referente ao dado a ser escrito
  */
-void tmp100_write_reg(uint8_t addr, uint8_t *data);
+void TMP100_I2C_WRITE(uint8_t addr, uint8_t *data);
 
 /*
  * addr é o valor de 7 bits do endereço do registrador, data é o valor de 8
  * bits referente ao dado a ser lido
  */
-uint8_t tmp100_read_reg(uint8_t addr, uint8_t *data);
+uint8_t TMP100_I2C_READ(uint8_t addr, uint8_t *data);
 
 /*faz a configuração do tmp100*/
-void tmp100_setup();
+void TMP100_I2C_SETUP();
 
 /* Faz a configuração da conexão com o stm32*/
-TMP100_DATA tmp100_loop(int conv_const);
+TMP100_DATA TMP100_I2C_DATA(int conv_const);
 #endif
