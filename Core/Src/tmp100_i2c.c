@@ -42,6 +42,7 @@ void TMP100_I2C_SETUP()
 	uint8_t resolution = RESOLUTION_12_BIT;
 	TMP100_I2C_WRITE(CONFIG_REG, &resolution);
 }
+
 TMP100_DATA TMP100_I2C_DATA(int conv_const)
 {
 	TMP100_DATA dados;

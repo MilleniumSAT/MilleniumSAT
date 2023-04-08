@@ -13,7 +13,7 @@
 #include "stm32l0xx_hal.h"
 
 /* Endereço i2C do sensor*/
-#define TMP100_ADDR 0x49
+#define TMP100_ADDR 0x4F
 
 /* Endereços dos registradores internos */
 #define TEMP_REG					0x00

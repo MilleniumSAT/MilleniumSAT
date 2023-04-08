@@ -25,6 +25,7 @@
 //#include "rm3100_i2c.h"
 #include "rm3100_spi.h"
 #include "tmp100_i2c.h"
+#include "i2c_detect.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -108,6 +109,7 @@ int main(void)
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_SPI2_Init();
+  i2c_detect();
 
   /* USER CODE BEGIN 2 */
   /* USER CODE END 2 */
@@ -126,6 +128,7 @@ int main(void)
 
 	  sprintf(MSG, "x = %ld, y = %ld, z = %ld, temp = %u.%u C\r\n",
 			  mag.x, mag.y, mag.z, (unsigned int)t / 100, (unsigned int) t%100);
+
 
 	  HAL_UART_Transmit(&huart1, (uint8_t *) MSG, sizeof(MSG), 100);
 	  HAL_Delay(1000);
