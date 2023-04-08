@@ -13,7 +13,7 @@
 #define DR_GPIO GPIOB
 
 /*Definição do pino de CS*/
-#define CS_PIN GPI_PIN_8
+#define CS_PIN GPIO_PIN_8
 #define CS_GPIO GPIOA
 
 /* Endereços dos registradores internos sem o bit de R/W (vide datasheet) */
@@ -45,17 +45,32 @@ typedef struct
 
 /*variáveis externas (criadas no main do código do stm32)*/
 extern UART_HandleTypeDef *uart_handle;
-extern I2C_HandleTypeDef *spi_handle;
+extern SPI_HandleTypeDef *spi_handle;
 
 /*
- * addr é o valor de 7 bits do endereço do registrador, data é o valor de 8
+ * RM3100_SPI_WRITE: Envia dados para via SPI
+ * ---------------------------------------------------------------------
+ * addr: valor de 7 bits do endereço do registrador, data é o valor de 8
  * bits referente ao dado a ser escrito
+ * data: vetor de dados a serem enviados
+ * size: numero de bytes a serem enviados
  */
-void RM3100_SPI_WRITE(uint8_t addr, uint8_t data);
+void RM3100_SPI_WRITE(uint8_t addr, uint8_t *data, uint16_t size);
 
 /*
- * addr é o valor de 7 bits do endereço do registrador, data é o valor de 8
- * bits referente ao dado a ser lido
+ * RM3100_SPI_READ: L~e dados via SPI
+ * ---------------------------------------------------------------------
+ * addr: valor de 7 bits do endereço do registrador, data é o valor de 8
+ * bits referente ao dado a ser escrito
+ * data: endereço do buffer de dados a ser lido
+ * size: numero de bytes a serem enviados
  */
-void RM3100_SPI_READ(uint8_t addr, uint8_t data);
+void RM3100_SPI_READ(uint8_t addr, uint8_t *data, uint16_t size);
+
+/*
+ * RM3100_SPI_CHANGE_CC: Faz a mudança do Cycle Count
+ * ----------------------------------------------------------------------
+ * new_cc: Novo valor de Cycle Count do rm3100
+ */
+void RM3100_SPI_CHANGE_CC(uint16_t new_cc);
 #endif

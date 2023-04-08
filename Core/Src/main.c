@@ -22,8 +22,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
-#include "rm3100_i2c.h"
-//#include "rm3100_spi.h"
+//#include "rm3100_i2c.h"
+#include "rm3100_spi.h"
 #include "tmp100_i2c.h"
 /* USER CODE END Includes */
 
@@ -349,7 +349,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
-  rm3100_setup(&GPIO_InitStruct);
+//rm3100_setup(&GPIO_InitStruct);
   tmp100_setup();
 /* USER CODE END MX_GPIO_Init_2 */
 }
