@@ -20,12 +20,45 @@ enum {x2 = 0, x1 = 1, x0 = 2, y2 = 3, y1 = 4, y0 = 5, z2 = 6, z1 = 7, z0 = 8};
 char msg[35] = {'\0'};
 
 /*-------------------------------FUNÇÕES INTERNAS-----------------------*/
+
+/*Exibe mensagem via uart*/
 void uart_print(char *msg, int dbg_enabled)
 {
 	if (!dbg_enabled) return;
 
 	HAL_UART_Transmit(uart_handle, (uint8_t *) msg, sizeof(msg), 100);
 	HAL_Delay(1000);
+}
+
+/*Aguarda pelo pino de Data Ready*/
+void wait_dr()
+{
+	if(USE_DR_PIN)
+	{
+		while(HAL_GPIO_ReadPin(GPIOB, DR_PIN) == GPIO_PIN_RESET); /* checa o pino de data ready*/
+		return;
+	}
+
+	uint8_t status;
+	do
+	{
+		RM3100_SPI_READ(STATUS_REG, &status, 1);
+	}
+	while((status & 0x80) != 0x80); /* lê o status interno do registrador */
+}
+
+/*Formata os dados , pois não é um signed int de 24 bits*/
+void data_format(RM3100_DATA *dados, uint8_t *readings)
+{
+	/* Manipulação de dados - não é um signed int de 24 bits */
+	if (readings[x2] & 0x80) dados->x = 0xFF;
+	if (readings[y2] & 0x80) dados->y = 0xFF;
+	if (readings[z2] & 0x80) dados->z = 0xFF;
+
+
+	dados->x = (dados->x*256*256*256)|(int32_t) readings[x2]*256*256|(uint16_t) readings[x1]*256|readings[x0];
+	dados->y = (dados->y*256*256*256)|(int32_t) readings[y2]*256*256|(uint16_t) readings[y1]*256|readings[y0];
+	dados->z = (dados->z*256*256*256)|(int32_t) readings[z2]*256*256|(uint16_t) readings[z1]*256|readings[z0];
 }
 /*---------------------------------------------------------------------*/
 
@@ -152,4 +185,39 @@ void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
 		tmp = 0x79;
 		RM3100_SPI_WRITE(CMM_REG, &tmp, 1);
 	}
+}
+
+/* Função que deve ficar em loop, retorna uma struct contendo os dados de leitura*/
+RM3100_DATA RM3100_SPI_DATA()
+{
+	RM3100_DATA dados;
+	dados.x = 0;
+	dados.y = 0;
+	dados.z = 0;
+	dados.gain = gain;
+
+	uint8_t readings[9]; /* valores de leitura : x2,x1,x0,y2,y1,y0,z2,z1,z0 */
+	uint8_t tmp;
+
+	/* Aguarda até que um dos 2 métodos esteja pronto para receber os dados*/
+	wait_dr();
+
+	/* Começa deixando o pino de CS em LOW */
+	HAL_GPIO_WritePin (CS_GPIO, CS_PIN, GPIO_PIN_RESET);
+
+	/* Envia o endereço e depois captura o dado*/
+	tmp = 0xA4;
+	uint8_t hex_val[] = {0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0};
+
+	HAL_SPI_Transmit(spi_handle, &tmp, 1, HAL_MAX_DELAY);
+	HAL_SPI_TransmitReceive(spi_handle, hex_val,  readings, 9, HAL_MAX_DELAY);
+
+	/* Termina com o chip de CS em HIGH */
+	HAL_GPIO_WritePin (CS_GPIO, CS_PIN, GPIO_PIN_SET);
+
+
+	/* formata os resultados em valores de 32 bits (com sinal) */
+	data_format(&dados, readings);
+
+	return dados;
 }
