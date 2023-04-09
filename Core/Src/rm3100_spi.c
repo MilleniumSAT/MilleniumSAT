@@ -95,13 +95,17 @@ void data_format(RM3100_DATA *dados, uint8_t *readings)
  */
 void RM3100_SPI_WRITE(uint8_t addr, uint8_t *data, uint16_t size)
 {
-  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
-  HAL_Delay(100);
-  uint8_t buffer[2];
-  buffer[0] = addr & 0x7F;
-  buffer[1] = data[0];
-  HAL_SPI_Transmit(spi_handle, &buffer, 1, HAL_MAX_DELAY);
-  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
+    HAL_Delay(100);
+
+    uint8_t buffer[2];
+    buffer[0] = addr & 0x7F;
+    buffer[1] = data[0];
+
+    HAL_SPI_Transmit(spi_handle, &buffer[0], 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &buffer[1], 1, HAL_MAX_DELAY);
+
+    HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);
 }
 /*
  * addr é o valor de 7 bits do endereço do registrador, data é o valor de 8
@@ -169,8 +173,23 @@ void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
   }
   else
   {
-    uint8_t value = 0x79;
-    RM3100_SPI_WRITE(RM3100_CMM_REG, &value, 0);
+	  while (1){
+	uint teste = 0;
+	RM3100_SPI_READ(0x35, &teste, 0);
+	RM3100_SPI_READ(0x35, &teste, 0);
+
+    uint8_t value = 0x1a;
+    RM3100_SPI_WRITE(0x35, &value, 0);
+    RM3100_SPI_WRITE(0x35, &value, 0);
+
+    teste = 0;
+	RM3100_SPI_READ(0x35, &teste, 0);
+	RM3100_SPI_READ(0x35, &teste, 0);
+
+    value = 0x1b;
+    RM3100_SPI_WRITE(0x35, &value, 0);
+    RM3100_SPI_WRITE(0x35, &value, 0);
+	  }
   }
 
   //	  uint8_t addr = 0x36;
