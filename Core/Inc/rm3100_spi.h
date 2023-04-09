@@ -27,7 +27,7 @@
 /* Opções*/
 #define INITIAL_CC  200 /* configura  cycle count*/
 #define SINGLE_MODE 0 	/* 0 = modo de medida continuo; 1 = single mode */
-#define USE_DR_PIN 1 	/* 0 = não usa pino de DR ; 1 = usa pino de DR */
+#define USE_DR_PIN 0 	/* 0 = não usa pino de DR ; 1 = usa pino de DR */
 #define UART_DBG 0		/* 0 = não printa mensagem de debug via UART, 1 = emite*/
 
 
@@ -44,7 +44,7 @@ typedef struct
 } RM3100_DATA;
 
 /*variáveis externas (criadas no main do código do stm32)*/
-extern UART_HandleTypeDef *uart_handle;
+//extern UART_HandleTypeDef *uart_handle;
 extern SPI_HandleTypeDef *spi_handle;
 
 /*
