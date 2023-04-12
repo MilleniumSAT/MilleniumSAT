@@ -187,11 +187,11 @@ void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
   else
   {
     uint8_t value = 0x00;
+//
+//	value = 0x9B;
+//	RM3100_SPI_WRITE(RM3100_REG_TMRC, &value, 0);
 
-	value = 0x9B;
-	RM3100_SPI_WRITE(RM3100_REG_TMRC, &value, 0);
-
-	value = 0b01110100;
+	value = 0b01110101;
 	RM3100_SPI_WRITE(RM3100_CMM_REG, &value, 0);
 
     uint8_t status = 0;
@@ -260,9 +260,9 @@ RM3100_DATA RM3100_SPI_DATA()
 
 
   //format results into single 32 bit signed value
-  x = (x * 256 * 256 * 256) | (int32_t)(buffer[0]) * 256 * 256 | (uint16_t)(buffer[1]) * 256 | buffer[2];
-  y = (y * 256 * 256 * 256) | (int32_t)(buffer[3]) * 256 * 256 | (uint16_t)(buffer[4]) * 256 | buffer[5];
-  z = (z * 256 * 256 * 256) | (int32_t)(buffer[6]) * 256 * 256 | (uint16_t)(buffer[7]) * 256 | buffer[8];
+  x = ((x * 256 * 256 * 256) | (int32_t)(buffer[0]) * 256 * 256 | (uint16_t)(buffer[1]) * 256 | buffer[2])/100000;
+  y = ((y * 256 * 256 * 256) | (int32_t)(buffer[3]) * 256 * 256 | (uint16_t)(buffer[4]) * 256 | buffer[5])/100000;
+  z = ((z * 256 * 256 * 256) | (int32_t)(buffer[6]) * 256 * 256 | (uint16_t)(buffer[7]) * 256 | buffer[8])/100000;
 
   //calculate magnitude of results
   double uT = sqrt(pow(((float)(x)/gain),2) + pow(((float)(y)/gain),2)+ pow(((float)(z)/gain),2));
