@@ -47,8 +47,8 @@
 #define CYCLE_COUNTS_DEFAULT        (200)
 
 #define SINGLE_MODE 0 	/* 0 = modo de medida continuo; 1 = single mode */
-#define USE_DR_PIN 1 	/* 0 = não usa pino de DR ; 1 = usa pino de DR */
-#define UART_DBG 0		/* 0 = não printa mensagem de debug via UART, 1 = emite*/
+#define USE_DR_PIN 	1 	/* 0 = não usa pino de DR ; 1 = usa pino de DR */
+#define UART_DBG 	0		/* 0 = não printa mensagem de debug via UART, 1 = emite*/
 
 /* CMMode config */
 #define CMM_DRDM_ALL_AXIS	0x00	/* (0 << 2) */

@@ -89,14 +89,16 @@ void data_format(RM3100_DATA *dados, uint8_t *readings)
  */
 void RM3100_SPI_WRITE(uint8_t addr, uint8_t *data, uint16_t size)
 {
+
+	uint8_t *buffer
     HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
 
-    uint8_t buffer[2];
-    buffer[0] = addr & 0x7F;
-    buffer[1] = data[0];
+	/*faz manimpulação no endereço e o envia */
+    uint8_t endereco = addr & 0x7F;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
 
-    HAL_SPI_Transmit(spi_handle, &buffer[0], 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(spi_handle, &buffer[1], 1, HAL_MAX_DELAY);
+    /*envia o vetor de dados - segundo a documentação da função*/
+    HAL_SPI_Transmit(spi_handle, data, size, HAL_MAX_DELAY);
 
     HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);
 }
@@ -117,20 +119,22 @@ void RM3100_SPI_READ(uint8_t addr, uint8_t *data, uint16_t size)
 
 //newCC is the new cycle count value (16 bits) to change the data acquisition
 void changeCycleCount(){
-  uint8_t CCMSB = (200 & 0xFF00) >> 8; //get the most significant byte
-  uint8_t CCLSB = 200 & 0xFF; //get the least significant byte
-  uint revid = 0;
+  uint8_t CCMSB = (200 & 0xFF00) >> 8;	/* byte mais significativo */
+  uint8_t CCLSB = 200 & 0xFF; 			/* byte menos significativo */
 
   HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
 
-  uint8_t buffer[7];
-  buffer[0] = RM3100_REG_CCX1 & 0x7F;
-  buffer[1] = CCMSB;
-  buffer[2] = CCLSB;
-  buffer[3] = CCMSB;
-  buffer[4] = CCLSB;
-  buffer[5] = CCMSB;
-  buffer[6] = CCLSB;
+  uint8_t buffer[7] =
+  {
+		  RM3100_REG_CCX1 & 0x7F,
+		  CCMSB,
+		  CCLSB,
+		  CCMSB,
+		  CCLSB,
+		  CCMSB,
+		  CCLSB
+  };
+
   HAL_SPI_Transmit(spi_handle, &buffer[0], 1, HAL_MAX_DELAY);
   HAL_SPI_Transmit(spi_handle, &buffer[1], 1, HAL_MAX_DELAY);
   HAL_SPI_Transmit(spi_handle, &buffer[2], 1, HAL_MAX_DELAY);
