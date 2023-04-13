@@ -122,11 +122,8 @@ void changeCycleCount(){
   uint8_t CCMSB = (200 & 0xFF00) >> 8;	/* byte mais significativo */
   uint8_t CCLSB = 200 & 0xFF; 			/* byte menos significativo */
 
-  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
-
-  uint8_t buffer[7] =
+  uint8_t buffer[6] =
   {
-		  RM3100_REG_CCX1 & 0x7F,
 		  CCMSB,
 		  CCLSB,
 		  CCMSB,
@@ -135,17 +132,8 @@ void changeCycleCount(){
 		  CCLSB
   };
 
-  HAL_SPI_Transmit(spi_handle, &buffer[0], 1, HAL_MAX_DELAY);
-  HAL_SPI_Transmit(spi_handle, &buffer[1], 1, HAL_MAX_DELAY);
-  HAL_SPI_Transmit(spi_handle, &buffer[2], 1, HAL_MAX_DELAY);
-  HAL_SPI_Transmit(spi_handle, &buffer[3], 1, HAL_MAX_DELAY);
-  HAL_SPI_Transmit(spi_handle, &buffer[4], 1, HAL_MAX_DELAY);
-  HAL_SPI_Transmit(spi_handle, &buffer[5], 1, HAL_MAX_DELAY);
-  HAL_SPI_Transmit(spi_handle, &buffer[6], 1, HAL_MAX_DELAY);
-
-  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);
-
-
+  /* Envia o vetor de dados para ccx1. Não é necessário & 0x7F pois já está incluso na função*/
+  RM3100_SPI_WRITE(RM3100_REG_CCX1, &buffer, 6);
 }
 
 /* Faz a configuração da conexão com o stm32*/
