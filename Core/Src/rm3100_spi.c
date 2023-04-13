@@ -10,13 +10,7 @@
 #include <stdio.h>
 #include <rm3100_spi.h>
 
-#define SPI_MAX_SEND 32
-#define RM3100_REVID_REG 0x36  // Hexadecimal address for the Revid internal register
-#define RM3100_POLL_REG 0x00   // Hexadecimal address for the Poll internal register
-#define RM3100_CMM_REG 0x01    // Hexadecimal address for the Continuous Measurement Mode internal register
-#define RM3100_STATUS_REG 0x34 // Hexadecimal address for the Status internal register
-#define RM3100_CCX1_REG 0x04   // Hexadecimal address for the Cycle Count X1 internal register
-#define RM3100_CCX0_REG 0x05   // Hexadecimal address for the Cycle Count X0 internal register
+
 
 uint8_t revid;
 uint16_t cycle_count;
@@ -64,7 +58,7 @@ void wait_dr()
   uint8_t status;
   do
   {
-    RM3100_SPI_READ(STATUS_REG, &status, 1);
+    RM3100_SPI_READ(RM3100_REG_STATUS, &status, 1);
   } while ((status & 0x80) != 0x80); /* lê o status interno do registrador */
 }
 
@@ -130,7 +124,7 @@ void changeCycleCount(){
   HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
 
   uint8_t buffer[7];
-  buffer[0] = RM3100_CCX1_REG & 0x7F;
+  buffer[0] = RM3100_REG_CCX1 & 0x7F;
   buffer[1] = CCMSB;
   buffer[2] = CCLSB;
   buffer[3] = CCMSB;
@@ -154,15 +148,15 @@ void changeCycleCount(){
 void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
 {
   uint revid = 0;
-  RM3100_SPI_READ(RM3100_REVID_REG, &revid, 0);
-  RM3100_SPI_READ(RM3100_REVID_REG, &revid, 0);
+  RM3100_SPI_READ(RM3100_REG_REVID, &revid, 0);
+  RM3100_SPI_READ(RM3100_REG_REVID, &revid, 0);
   printf("REVID ID = 0x%02X\n", revid);
 
   changeCycleCount();
   uint32_t cycleCount = 0;
   uint16_t cycleCount1, cycleCount2 = 0;
-  RM3100_SPI_READ(RM3100_CCX1_REG, &cycleCount1, 0);
-  RM3100_SPI_READ(RM3100_CCX0_REG, &cycleCount2, 0);
+  RM3100_SPI_READ(RM3100_REG_CCX1, &cycleCount1, 0);
+  RM3100_SPI_READ(RM3100_REG_CCX0, &cycleCount2, 0);
   cycleCount = (cycleCount1 << 8) | cycleCount2;
   printf("Cycle Counts = %u\n", cycleCount);
 
@@ -173,15 +167,15 @@ void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
     uint8_t value = 0x00;
     uint16_t teste = 0;
 
-    RM3100_SPI_WRITE(RM3100_CMM_REG, &value, 0);
+    RM3100_SPI_WRITE(RM3100_REG_CMM, &value, 0);
 
     value = 0x70;
-    RM3100_SPI_WRITE(RM3100_POLL_REG, &value, 0);
+    RM3100_SPI_WRITE(RM3100_REG_POLL, &value, 0);
 
-    RM3100_SPI_READ(RM3100_POLL_REG, &teste, 0);
+    RM3100_SPI_READ(RM3100_REG_POLL, &teste, 0);
     teste = teste;
 
-    RM3100_SPI_READ(RM3100_CMM_REG, &teste, 0);
+    RM3100_SPI_READ(RM3100_REG_CMM, &teste, 0);
     teste = teste;
   }
   else
@@ -192,10 +186,10 @@ void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
 //	RM3100_SPI_WRITE(RM3100_REG_TMRC, &value, 0);
 
 	value = 0b01110101;
-	RM3100_SPI_WRITE(RM3100_CMM_REG, &value, 0);
+	RM3100_SPI_WRITE(RM3100_REG_CMM, &value, 0);
 
     uint8_t status = 0;
-    RM3100_SPI_READ(RM3100_CMM_REG, &status, 0);
+    RM3100_SPI_READ(RM3100_REG_CMM, &status, 0);
     status = status;
 
   }

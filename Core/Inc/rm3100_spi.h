@@ -16,50 +16,48 @@
 #define CS_PIN GPIO_PIN_8
 #define CS_GPIO GPIOA
 
-/* Endereços dos registradores internos sem o bit de R/W (vide datasheet) */
-#define REVID_REG 0x36 	/* Endereço hexadecimal para o registrador Revid */
-#define POLL_REG 0x00  	/* Endereço hexadecimal para o registrador Poll */
-#define CMM_REG 0x01	/* Endereço hexadecimal para o registrador CMM */
-#define STATUS_REG 0x34 /* Endereço hexadecimal para o registrador Status */
-#define CCX1_REG 0x04 	/* Endereço hexadecimal para o registrador Cycle Count X1 */
-#define CCX0_REG 0x05	/* Endereço hexadecimal para o registrador Cycle Count X0 */
+/* Endereços dos registradores internos */
+#define	RM3100_REG_POLL		0x00	/* Endereço hexadecimal do registrador Poll*/
+#define RM3100_REG_CMM  	0x01	/* Endereço hexadecimal do registrador do modo de medição contínua*/
+#define RM3100_REG_CCX  	0x04 	/* Cycle counts -- X axis */
+#define RM3100_REG_CCY  	0x06 	/* cycle counts -- Y axis */
+#define RM3100_REG_CCZ  	0x08 	/* cycle counts -- Z axis */
+#define RM3100_REG_TMRC 	0x0B 	/* Ativa o modo de dados contínuos */
+#define RM3100_REG_MX   	0x24 	/* Medidas -- eixo X */
+#define RM3100_REG_MY   	0x27 	/* Medidas -- eixo Y */
+#define RM3100_REG_MZ   	0x2A	/* Medidas -- eixo Z */
+#define RM3100_REG_BIST 	0x33	/* Autoteste interno */
+#define RM3100_REG_STATUS	0x34	/* Endereço hexadecimal do registrador de status DRDY */
+#define RM3100_REG_HSHAKE  	0x35 	/* Endereço de handshake*/
+#define RM3100_REG_REVID 	0x36 	/* MagI2C revision identification */
+#define RM3100_REG_CCX1 	0x04   	/* Endereço hexadecimal do registrador Cycle Count X1 */
+#define RM3100_REG_CCX0 	0x05   	/* Endereço hexadecimal do registrador Cycle Count X0 */
+
+#define SMM_AXIS_X	0x10	/* (1 << 4) */
+#define SMM_AXIS_Y  0x20    /* (1 << 5) */
+#define SMM_AXIS_Z  0x40    /* (1 << 6) */
+
+#define CMM_AXIS_X	0x10	/* (1 << 4) */
+#define CMM_AXIS_Y  0x20    /* (1 << 5) */
+#define CMM_AXIS_Z  0x40    /* (1 << 6) */
+
 
 /* Opções*/
 #define INITIAL_CC  200 /* configura  cycle count*/
+#define CYCLE_COUNTS_DEFAULT        (200)
+
 #define SINGLE_MODE 0 	/* 0 = modo de medida continuo; 1 = single mode */
 #define USE_DR_PIN 1 	/* 0 = não usa pino de DR ; 1 = usa pino de DR */
 #define UART_DBG 0		/* 0 = não printa mensagem de debug via UART, 1 = emite*/
 
-
-#define SMM_AXIS_X                  (1 << 4)
-#define SMM_AXIS_Y                  (1 << 5)
-#define SMM_AXIS_Z                  (1 << 6)
-
-#define CMM_AXIS_X                  (1 << 4)
-#define CMM_AXIS_Y                  (1 << 5)
-#define CMM_AXIS_Z                  (1 << 6)
-
- #define   RM3100_REG_POLL    0x00 // polls for a single measurement
-#define    RM3100_REG_CMM     0x01 // initiates continuous measurement mode
- #define   RM3100_REG_CCX     0x04 // cycle counts -- X axis
- #define   RM3100_REG_CCY     0x06 // cycle counts -- Y axis
-#define   RM3100_REG_CCZ    0x08 // cycle counts -- Z axis
- #define   RM3100_REG_TMRC   0x0B // sets continuous mode data rate
-#define    RM3100_REG_MX     0x24 // measurement results -- X axis
-#define   RM3100_REG_MY      0x27 // measurement results -- Y axis
-#define    RM3100_REG_MZ      0x2A// measurement results -- Z axis
-#define    RM3100_REG_BIST   0x33// built-in self test
-#define    RM3100_REG_STATUS  0x34 // status of DRDY
-#define    RM3100_REG_HSHAKE  0x35 // handshake register
-#define    RM3100_REG_REVID 0x36 // MagI2C revision identification
-
-
 /* CMMode config */
-#define CMM_DRDM_ALL_AXIS           (0 << 2)
-#define CMM_DRDM_ANY_AXIS           (1 << 2)
+#define CMM_DRDM_ALL_AXIS	0x00	/* (0 << 2) */
+#define CMM_DRDM_ANY_AXIS	0x04    /* (1 << 2) */
+
+/* Comunicação SPI*/
+#define SPI_MAX_SEND 32
 
 
-#define CYCLE_COUNTS_DEFAULT        (200)
 
 
 /*
