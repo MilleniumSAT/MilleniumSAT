@@ -1,13 +1,14 @@
 /*
- * Author: Lucas de Jesus B. Gonçalves
+ * Author: Lucas de Jesus B. Gonçalves / Antônio Emílio
  *
- * Last modified: 02/04/2023
+ * Last modified: 13/04/2023
  * Description: SPI library for the RM3100 sensor using stm32.
  */
 
 #include "stm32l0xx_hal.h"
 #include <limits.h>
 #include <stdio.h>
+#include <math.h>
 #include <rm3100_spi.h>
 
 
@@ -16,42 +17,27 @@ uint8_t revid;
 uint16_t cycle_count;
 float gain = 1.0;
 
-enum
-{
-  x2 = 0,
-  x1 = 1,
-  x0 = 2,
-  y2 = 3,
-  y1 = 4,
-  y0 = 5,
-  z2 = 6,
-  z1 = 7,
-  z0 = 8
+/* enum para facilitar na indexação dos dados */
+enum {
+  X2 = 0,
+  X1 = 1,
+  X0 = 2,
+  Y2 = 3,
+  Y1 = 4,
+  Y0 = 5,
+  Z2 = 6,
+  Z1 = 7,
+  Z0 = 8
 };
 char msg[35] = {'\0'};
 
 /*-------------------------------FUNÇÕES INTERNAS-----------------------*/
-
-/*Exibe mensagem via uart*/
-void uart_print(char *msg, int dbg_enabled)
-{
-  //	if (!dbg_enabled) return;
-  //
-  //	HAL_UART_Transmit(uart_handle, (uint8_t *) msg, sizeof(msg), 100);
-  //	HAL_Delay(1000);
-}
-
 /*Aguarda pelo pino de Data Ready*/
 void wait_dr()
 {
   if (USE_DR_PIN)
   {
-    while (HAL_GPIO_ReadPin(GPIOB, DR_PIN) == GPIO_PIN_SET)
-      ; /* checa o pino de data ready*/
-    return;
-  }
-  else
-  {
+    while (HAL_GPIO_ReadPin(GPIOB, DR_PIN) == GPIO_PIN_SET); /* checa o pino de data ready*/
     return;
   }
 
@@ -66,16 +52,16 @@ void wait_dr()
 void data_format(RM3100_DATA *dados, uint8_t *readings)
 {
   /* Manipulação de dados - não é um signed int de 24 bits */
-  if (readings[x2] & 0x80)
+  if (readings[X2] & 0x80)
     dados->x = 0xFF;
-  if (readings[y2] & 0x80)
+  if (readings[Y2] & 0x80)
     dados->y = 0xFF;
-  if (readings[z2] & 0x80)
+  if (readings[Z2] & 0x80)
     dados->z = 0xFF;
 
-  dados->x = (dados->x * 256 * 256 * 256) | (int32_t)readings[x2] * 256 * 256 | (uint16_t)readings[x1] * 256 | readings[x0];
-  dados->y = (dados->y * 256 * 256 * 256) | (int32_t)readings[y2] * 256 * 256 | (uint16_t)readings[y1] * 256 | readings[y0];
-  dados->z = (dados->z * 256 * 256 * 256) | (int32_t)readings[z2] * 256 * 256 | (uint16_t)readings[z1] * 256 | readings[z0];
+  dados->x = ((dados->x * 256 * 256 * 256) | (int32_t)readings[X2] * 256 * 256 | (uint16_t)readings[X1] * 256 | readings[X0])/100000;
+  dados->y = ((dados->y * 256 * 256 * 256) | (int32_t)readings[Y2] * 256 * 256 | (uint16_t)readings[Y1] * 256 | readings[Y0])/100000;
+  dados->z = ((dados->z * 256 * 256 * 256) | (int32_t)readings[Z2] * 256 * 256 | (uint16_t)readings[Z1] * 256 | readings[Z0])/100000;
 }
 /*---------------------------------------------------------------------*/
 
@@ -90,14 +76,16 @@ void data_format(RM3100_DATA *dados, uint8_t *readings)
 void RM3100_SPI_WRITE(uint8_t addr, uint8_t *data, uint16_t size)
 {
 
-	uint8_t *buffer
     HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
 
 	/*faz manimpulação no endereço e o envia */
     uint8_t endereco = addr & 0x7F;
     HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
 
-    /*envia o vetor de dados - segundo a documentação da função*/
+    /*
+     * envia o vetor de dados - segundo a documentação da função.
+     * como data já é um ponteiro, não é necessário o operador de endereço &
+     */
     HAL_SPI_Transmit(spi_handle, data, size, HAL_MAX_DELAY);
 
     HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);
@@ -108,12 +96,10 @@ void RM3100_SPI_WRITE(uint8_t addr, uint8_t *data, uint16_t size)
  */
 void RM3100_SPI_READ(uint8_t addr, uint8_t *data, uint16_t size)
 {
-  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET); // digitalWrite(PIN_CS, LOW)                                    // delay(100)
-  uint8_t buffer[2];
-  buffer[0] = addr | 0x80;
-  buffer[1] = 0x00;
-  HAL_SPI_Transmit(spi_handle, &buffer[0], 1, 1000);
-  HAL_SPI_TransmitReceive(spi_handle, &buffer, data, 1, 1000); // SPI.transfer(addr | 0x80); data = SPI.transfer(0);
+  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);                                 // delay(100)
+  uint8_t buffer[2]= {addr | 0x80, 0x00};
+
+  HAL_SPI_Transmit(spi_handle, buffer, 2, 1000);
   HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);                    // digitalWrite(PIN_CS, HIGH)
 }
 
@@ -133,57 +119,45 @@ void changeCycleCount(){
   };
 
   /* Envia o vetor de dados para ccx1. Não é necessário & 0x7F pois já está incluso na função*/
-  RM3100_SPI_WRITE(RM3100_REG_CCX1, &buffer, 6);
+  RM3100_SPI_WRITE(RM3100_REG_CCX1, buffer, 6);
 }
 
 /* Faz a configuração da conexão com o stm32*/
 void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
 {
-  uint revid = 0;
+  uint8_t revid = 0;
+
   RM3100_SPI_READ(RM3100_REG_REVID, &revid, 0);
   RM3100_SPI_READ(RM3100_REG_REVID, &revid, 0);
   printf("REVID ID = 0x%02X\n", revid);
 
+  /* executa a função para mudar o cycle count*/
   changeCycleCount();
+
   uint32_t cycleCount = 0;
-  uint16_t cycleCount1, cycleCount2 = 0;
-  RM3100_SPI_READ(RM3100_REG_CCX1, &cycleCount1, 0);
-  RM3100_SPI_READ(RM3100_REG_CCX0, &cycleCount2, 0);
-  cycleCount = (cycleCount1 << 8) | cycleCount2;
-  printf("Cycle Counts = %u\n", cycleCount);
+  uint8_t cc1, cc2 = 0;
 
-  float gain = (0.3671 * (float)cycleCount) + 1.5;
+  RM3100_SPI_READ(RM3100_REG_CCX1, &cc1, 0);
+  RM3100_SPI_READ(RM3100_REG_CCX0, &cc2, 0);
 
+  cycleCount = (cc1 << 8) | cc2;
+  printf("Cycle Counts = %u\n", (uint) cycleCount);
+
+ gain = (0.3671 * (float)cycleCount) + 1.5;
+
+ uint8_t value;
   if (SINGLE_MODE)
   {
-    uint8_t value = 0x00;
-    uint16_t teste = 0;
-
+    value = 0x00;
     RM3100_SPI_WRITE(RM3100_REG_CMM, &value, 0);
 
     value = 0x70;
     RM3100_SPI_WRITE(RM3100_REG_POLL, &value, 0);
-
-    RM3100_SPI_READ(RM3100_REG_POLL, &teste, 0);
-    teste = teste;
-
-    RM3100_SPI_READ(RM3100_REG_CMM, &teste, 0);
-    teste = teste;
   }
   else
   {
-    uint8_t value = 0x00;
-//
-//	value = 0x9B;
-//	RM3100_SPI_WRITE(RM3100_REG_TMRC, &value, 0);
-
-	value = 0b01110101;
+    value = 0b01110101;
 	RM3100_SPI_WRITE(RM3100_REG_CMM, &value, 0);
-
-    uint8_t status = 0;
-    RM3100_SPI_READ(RM3100_REG_CMM, &status, 0);
-    status = status;
-
   }
 }
 
@@ -191,67 +165,29 @@ void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
 RM3100_DATA RM3100_SPI_DATA()
 {
   RM3100_DATA dados;
-  long x = 0;
-  long y = 0;
-  long z = 0;
-  uint8_t buffer[10] = { 0 };
-  uint8_t buffers[10] = { 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0x00 };
-  uint8_t buffers2[10] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-   // wait_dr();
+
+  uint8_t receive_buffer[9] = { 0 };
+  uint8_t send_buffer[10] = { 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0x00 };
+  // wait_dr();
 
   HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
 
-  HAL_SPI_Transmit(spi_handle, &buffers[0], 1, HAL_MAX_DELAY);
-
-  HAL_SPI_Transmit(spi_handle, &buffers[1], 1, HAL_MAX_DELAY);
-  HAL_SPI_Receive(spi_handle, &buffer[0], 1, HAL_MAX_DELAY);
-
-  HAL_SPI_Transmit(spi_handle, &buffers[2], 1, HAL_MAX_DELAY);
-  HAL_SPI_Receive(spi_handle, &buffer[1], 1, HAL_MAX_DELAY);
-
-  HAL_SPI_Transmit(spi_handle, &buffers[3], 1, HAL_MAX_DELAY);
-  HAL_SPI_Receive(spi_handle, &buffer[2], 1, HAL_MAX_DELAY);
-
-  HAL_SPI_Transmit(spi_handle, &buffers[4], 1, HAL_MAX_DELAY);
-  HAL_SPI_Receive(spi_handle, &buffer[3], 1, HAL_MAX_DELAY);
-
-  HAL_SPI_Transmit(spi_handle, &buffers[5], 1, HAL_MAX_DELAY);
-  HAL_SPI_Receive(spi_handle, &buffer[4], 1, HAL_MAX_DELAY);
-
-  HAL_SPI_Transmit(spi_handle, &buffers[6], 1, HAL_MAX_DELAY);
-  HAL_SPI_Receive(spi_handle, &buffer[5], 1, HAL_MAX_DELAY);
-
-  HAL_SPI_Transmit(spi_handle, &buffers[7], 1, HAL_MAX_DELAY);
-  HAL_SPI_Receive(spi_handle, &buffer[6], 1, HAL_MAX_DELAY);
-
-  HAL_SPI_Transmit(spi_handle, &buffers[8], 1, HAL_MAX_DELAY);
-  HAL_SPI_Receive(spi_handle, &buffer[7], 1, HAL_MAX_DELAY);
-
-  HAL_SPI_Transmit(spi_handle, &buffer[9], 1, HAL_MAX_DELAY);
-  HAL_SPI_Receive(spi_handle, &buffer[8], 1, HAL_MAX_DELAY);
-
+  /* automatiza o processo com um loop*/
+  HAL_SPI_Transmit(spi_handle, &send_buffer[0], 1, HAL_MAX_DELAY);
+  for (int i = 1; i < 10; i++)
+  {
+	  HAL_SPI_Transmit(spi_handle, &send_buffer[i], 1, HAL_MAX_DELAY);
+	  HAL_SPI_Receive(spi_handle, &receive_buffer[i-1], 1, HAL_MAX_DELAY);
+  }
 
   HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);
 
-  //special bit manipulation since there is not a 24 bit signed int data type
-  if (buffer[0] & 0x80){
-      x = 0xFF;
-  }
-  if (buffer[3] & 0x80){
-      y = 0xFF;
-  }
-  if (buffer[6] & 0x80){
-      z = 0xFF;
-  }
-
-
-  //format results into single 32 bit signed value
-  x = ((x * 256 * 256 * 256) | (int32_t)(buffer[0]) * 256 * 256 | (uint16_t)(buffer[1]) * 256 | buffer[2])/100000;
-  y = ((y * 256 * 256 * 256) | (int32_t)(buffer[3]) * 256 * 256 | (uint16_t)(buffer[4]) * 256 | buffer[5])/100000;
-  z = ((z * 256 * 256 * 256) | (int32_t)(buffer[6]) * 256 * 256 | (uint16_t)(buffer[7]) * 256 | buffer[8])/100000;
+  /* Usa a função de para a formatação dos dados anteriormente implementada*/
+  /*Formata os dados , pois não é um signed int de 24 bits*/
+  data_format(&dados, receive_buffer);
 
   //calculate magnitude of results
-  double uT = sqrt(pow(((float)(x)/gain),2) + pow(((float)(y)/gain),2)+ pow(((float)(z)/gain),2));
+  dados.uT = sqrt(pow(((float)(dados.x)/gain),2) + pow(((float)(dados.y)/gain),2)+ pow(((float)(dados.z)/gain),2));
 
   return dados;
 }

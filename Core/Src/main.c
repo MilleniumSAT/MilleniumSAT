@@ -115,7 +115,8 @@ int main(void)
   {
     //TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
     //HAL_Delay(1000);
-    RM3100_DATA mag = RM3100_SPI_DATA();
+    RM3100_DATA mag_data = RM3100_SPI_DATA();
+    printf("x_counts = %ld", mag_data.x);
     HAL_Delay(100);
 
     /* USER CODE END WHILE */

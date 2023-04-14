@@ -1,7 +1,7 @@
 /*
- * Author: Lucas de Jesus B. Gonçalves
+ * Author: Lucas de Jesus B. Gonçalves/ Antônio Emílio
  *
- * Last modified: 02/04/2023
+ * Last modified: 13/04/2023
  * Description: SPI library for the RM3100 sensor using stm32.
  */
 
@@ -33,14 +33,6 @@
 #define RM3100_REG_CCX1 	0x04   	/* Endereço hexadecimal do registrador Cycle Count X1 */
 #define RM3100_REG_CCX0 	0x05   	/* Endereço hexadecimal do registrador Cycle Count X0 */
 
-#define SMM_AXIS_X	0x10	/* (1 << 4) */
-#define SMM_AXIS_Y  0x20    /* (1 << 5) */
-#define SMM_AXIS_Z  0x40    /* (1 << 6) */
-
-#define CMM_AXIS_X	0x10	/* (1 << 4) */
-#define CMM_AXIS_Y  0x20    /* (1 << 5) */
-#define CMM_AXIS_Z  0x40    /* (1 << 6) */
-
 
 /* Opções*/
 #define INITIAL_CC  200 /* configura  cycle count*/
@@ -54,11 +46,6 @@
 #define CMM_DRDM_ALL_AXIS	0x00	/* (0 << 2) */
 #define CMM_DRDM_ANY_AXIS	0x04    /* (1 << 2) */
 
-/* Comunicação SPI*/
-#define SPI_MAX_SEND 32
-
-
-
 
 /*
  * Estruct com as leituras nos 3 eixos em counts.
@@ -70,6 +57,7 @@ typedef struct
 	long y;
 	long z;
 	float gain;
+	double uT;
 } RM3100_DATA;
 
 /*variáveis externas (criadas no main do código do stm32)*/
