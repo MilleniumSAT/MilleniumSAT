@@ -168,7 +168,7 @@ RM3100_DATA RM3100_SPI_DATA()
   dados.x = 0;
   dados.y = 0;
   dados.z = 0;
-  dados.gain = 1;
+  dados.gain = gain;
   dados.uT = 0;
 
   uint8_t receive_buffer[9] = { 0 };

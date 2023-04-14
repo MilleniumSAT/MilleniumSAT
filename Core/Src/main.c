@@ -113,8 +113,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    //TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
-    //HAL_Delay(1000);
+    TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
+    HAL_Delay(100);
     RM3100_DATA mag_data = RM3100_SPI_DATA();
     printf("x_counts = %ld", mag_data.x);
     HAL_Delay(100);
