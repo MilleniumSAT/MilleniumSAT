@@ -35,12 +35,11 @@ uint8_t TMP100_I2C_READ(uint8_t addr, uint8_t *data)
 }
 
 /*faz a configuração do tmp100*/
-void TMP100_I2C_SETUP()
+void TMP100_I2C_SETUP(uint8_t resolution)
 {
   /* modo parão: disable shutdown, comparator mode, active low, 1 consecutive fault
    * resolução de 12 bits
    */
-  uint8_t resolution = RESOLUTION_12_BIT;
   TMP100_I2C_WRITE(CONFIG_REG, &resolution);
 }
 

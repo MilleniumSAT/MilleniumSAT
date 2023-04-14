@@ -46,10 +46,10 @@
 #define RESOLUTION_12_BIT			0x60		//0.0625 degC
 
 /* Constante de conversão (in degC*E-4) */
-# define	MUL_9_bit				5000
-# define	MUL_10_bit				2500
-# define	MUL_11_bit				1250
-# define	MUL_12_bit				625
+# define	MUL_9_bit			((uint8_t)	5000)
+# define	MUL_10_bit			((uint8_t)	2500)
+# define	MUL_11_bit			((uint8_t)	1250)
+# define	MUL_12_bit			((uint8_t)	625)
 
 typedef struct
 {
@@ -75,7 +75,7 @@ void TMP100_I2C_WRITE(uint8_t addr, uint8_t *data);
 uint8_t TMP100_I2C_READ(uint8_t addr, uint8_t *data);
 
 /*faz a configuração do tmp100*/
-void TMP100_I2C_SETUP();
+void TMP100_I2C_SETUP(uint8_t resolution);
 
 /* Faz a configuração da conexão com o stm32*/
 TMP100_DATA TMP100_I2C_DATA(int conv_const);

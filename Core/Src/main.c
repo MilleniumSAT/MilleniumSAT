@@ -113,7 +113,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    //TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
+    //TMP100_DATA temp = TMP100_I2C_DATA();
     //HAL_Delay(1000);
     RM3100_DATA mag_data = RM3100_SPI_DATA();
     printf("x_counts = %ld", mag_data.x);
@@ -295,7 +295,7 @@ static void MX_GPIO_Init(void)
   /* USER CODE BEGIN MX_GPIO_Init_2 */
   RM3100_SPI_SETUP(&GPIO_InitStruct);
   HAL_Delay(1000);
-  TMP100_I2C_SETUP();
+  TMP100_I2C_SETUP(MUL_12_bit);
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
