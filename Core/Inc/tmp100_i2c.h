@@ -46,10 +46,10 @@
 #define RESOLUTION_12_BIT			0x60		//0.0625 degC
 
 /* Constante de conversão (in degC*E-4) */
-# define	MUL_9_bit			((uint8_t)	5000)
-# define	MUL_10_bit			((uint8_t)	2500)
-# define	MUL_11_bit			((uint8_t)	1250)
-# define	MUL_12_bit			((uint8_t)	625)
+# define	MUL_9_bit			5000
+# define	MUL_10_bit			2500
+# define	MUL_11_bit			1250
+# define	MUL_12_bit			625
 
 typedef struct
 {
