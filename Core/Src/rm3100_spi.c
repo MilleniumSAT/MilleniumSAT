@@ -165,6 +165,11 @@ void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
 RM3100_DATA RM3100_SPI_DATA()
 {
   RM3100_DATA dados;
+  dados.x = 0;
+  dados.y = 0;
+  dados.z = 0;
+  dados.gain = 1;
+  dados.uT = 0;
 
   uint8_t receive_buffer[9] = { 0 };
   uint8_t send_buffer[10] = { 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0x00 };
