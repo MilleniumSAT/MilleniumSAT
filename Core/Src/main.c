@@ -67,6 +67,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_SPI2_Init(void);
+static void MX_CAN_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -108,16 +109,21 @@ int main(void)
   MX_GPIO_Init();
   //  GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN 2 */
+  MX_CAN_Init();
+  unsigned char stmp[8] = {0, 1, 2, 3, 4, 5, 6, 7};
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
-    HAL_Delay(100);
-    RM3100_DATA mag_data = RM3100_SPI_DATA();
-    printf("x_counts = %ld", mag_data.x);
+//    TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
+//    HAL_Delay(100);
+//    RM3100_DATA mag_data = RM3100_SPI_DATA();
+//    printf("x_counts = %ld", mag_data.x);
+
+    sendMsgBuf(0x00, 0, 8, stmp);
+
     HAL_Delay(100);
 
     /* USER CODE END WHILE */
@@ -303,14 +309,21 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
-  RM3100_SPI_SETUP(&GPIO_InitStruct);
+  //RM3100_SPI_SETUP(&GPIO_InitStruct);
   HAL_Delay(1000);
-  TMP100_I2C_SETUP(RESOLUTION_12_BIT);
+  //TMP100_I2C_SETUP(RESOLUTION_12_BIT);
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
-
+static void MX_CAN_Init(void)
+{
+  while (CAN_OK != begin(CAN_500KBPS))    // init can bus : baudrate = 500k
+  {
+	  printf("CAN BUS FAIL!");
+	  HAL_Delay(100);
+  }
+}
 /* USER CODE END 4 */
 
 /**

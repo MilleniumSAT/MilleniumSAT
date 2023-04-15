@@ -46,7 +46,7 @@
 */
 #include "mcp_can.h"
 #include "stm32l0xx_hal.h"
-
+#include <stdio.h>
 #include "rm3100_spi.h"
 
 uint8_t   ext_flg;                         // identifier xxxID
@@ -57,6 +57,12 @@ uint8_t   dta[MAX_CHAR_IN_MESSAGE];        // data
 uint8_t   rtr;                             // rtr
 uint8_t   filhit;
 uint8_t   SPICS;
+
+
+int min(int a, int b){
+	return (a > b) ? b : a;
+}
+
 /*********************************************************************************************************
 ** Function name:           mcp2515_reset
 ** Descriptions:            reset the device
@@ -76,11 +82,12 @@ void mcp2515_reset(void)
 *********************************************************************************************************/
 uint8_t mcp2515_readRegister(const uint8_t address)
 {
-    uint8_t ret;
+    uint8_t ret = 0;
     HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
     uint8_t endereco = MCP_READ;
     HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-	HAL_SPI_Transmit(spi_handle, &address, 1, HAL_MAX_DELAY);
+    endereco = address;
+	HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
 	HAL_SPI_Receive(spi_handle, &ret, 1, HAL_MAX_DELAY);
     HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
 
@@ -97,7 +104,8 @@ void mcp2515_readRegisterS(const uint8_t address, uint8_t values[], const uint8_
     HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
     uint8_t endereco = MCP_READ;
     HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(spi_handle, &address, 1, HAL_MAX_DELAY);
+    endereco = address;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
     // mcp2515 has auto-increment of address-pointer
     for(i=0; i<n && i<CAN_MAX_CHAR_IN_MESSAGE; i++)
     {
@@ -130,11 +138,13 @@ void mcp2515_setRegisterS(const uint8_t address, const uint8_t values[], const u
     HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
     uint8_t endereco = MCP_WRITE;
     HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(spi_handle, &address, 1, HAL_MAX_DELAY);
+    endereco = address;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
 
     for(i=0; i<n; i++)
     {
-        HAL_SPI_Transmit(spi_handle, &values[i], 1, HAL_MAX_DELAY);
+    	endereco = values[i];
+        HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
     }
 
     HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
@@ -149,9 +159,12 @@ void mcp2515_modifyRegister(const uint8_t address, const uint8_t mask, const uin
 	HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
     uint8_t endereco = MCP_BITMOD;
     HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(spi_handle, &address, 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(spi_handle, &mask, 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(spi_handle, &data, 1, HAL_MAX_DELAY);
+    endereco = address;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    endereco = mask;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    endereco = data;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
     HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
 }
 
@@ -181,7 +194,9 @@ uint8_t mcp2515_setCANCTRL_Mode(const uint8_t newmode)
 
     mcp2515_modifyRegister(MCP_CANCTRL, MODE_MASK, newmode);
 
-    i = mcp2515_readRegister(MCP_CANCTRL);
+    while (1){
+    	i = mcp2515_readRegister(MCP_CANCTRL);
+    }
     i &= MODE_MASK;
 
     if(i == newmode)
@@ -367,14 +382,14 @@ uint8_t mcp2515_init(const uint8_t canSpeed)
 #if DEBUG_EN
         Serial.print("Enter setting mode fall\r\n");
 #else
-        delay(10);
+        HAL_Delay(10);
 #endif
         return res;
     }
 #if DEBUG_EN
     Serial.print("Enter setting mode success \r\n");
 #else
-    delay(10);
+    HAL_Delay(10);
 #endif
 
     // set boadrate
@@ -383,14 +398,14 @@ uint8_t mcp2515_init(const uint8_t canSpeed)
 #if DEBUG_EN
         Serial.print("set rate fall!!\r\n");
 #else
-        delay(10);
+        HAL_Delay(10);
 #endif
         return res;
     }
 #if DEBUG_EN
     Serial.print("set rate success!!\r\n");
 #else
-    delay(10);
+    HAL_Delay(10);
 #endif
 
     if(res == MCP2515_OK) {
@@ -423,7 +438,7 @@ uint8_t mcp2515_init(const uint8_t canSpeed)
 #if DEBUG_EN
             Serial.print("Enter Normal Mode Fall!!\r\n");
 #else
-            delay(10);
+            HAL_Delay(10);
 #endif
             return res;
         }
@@ -432,7 +447,7 @@ uint8_t mcp2515_init(const uint8_t canSpeed)
 #if DEBUG_EN
         Serial.print("Enter Normal Mode Success!!\r\n");
 #else
-        delay(10);
+        HAL_Delay(10);
 #endif
 
     }
@@ -584,7 +599,6 @@ MCP_CAN(uint8_t _CS)
 *********************************************************************************************************/
 uint8_t begin(uint8_t speedset)
 {
-    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
     uint8_t res = mcp2515_init(speedset);
     return ((res == MCP2515_OK) ? CAN_OK : CAN_FAILINIT);
 }
@@ -599,14 +613,14 @@ uint8_t init_Mask(uint8_t num, uint8_t ext, unsigned long ulData)
 #if DEBUG_EN
     Serial.print("Begin to set Mask!!\r\n");
 #else
-    delay(10);
+    HAL_Delay(10);
 #endif
     res = mcp2515_setCANCTRL_Mode(MODE_CONFIG);
     if(res > 0){
 #if DEBUG_EN
         Serial.print("Enter setting mode fall\r\n");
 #else
-        delay(10);
+        HAL_Delay(10);
 #endif
         return res;
     }
@@ -625,14 +639,14 @@ uint8_t init_Mask(uint8_t num, uint8_t ext, unsigned long ulData)
 #if DEBUG_EN
         Serial.print("Enter normal mode fall\r\n");
 #else
-        delay(10);
+        HAL_Delay(10);
 #endif
         return res;
     }
 #if DEBUG_EN
     Serial.print("set Mask success!!\r\n");
 #else
-    delay(10);
+    HAL_Delay(10);
 #endif
     return res;
 }
@@ -647,7 +661,7 @@ uint8_t init_Filt(uint8_t num, uint8_t ext, unsigned long ulData)
 #if DEBUG_EN
     Serial.print("Begin to set Filter!!\r\n");
 #else
-    delay(10);
+    HAL_Delay(10);
 #endif
     res = mcp2515_setCANCTRL_Mode(MODE_CONFIG);
     if(res > 0)
@@ -655,7 +669,7 @@ uint8_t init_Filt(uint8_t num, uint8_t ext, unsigned long ulData)
 #if DEBUG_EN
         Serial.print("Enter setting mode fall\r\n");
 #else
-        delay(10);
+        HAL_Delay(10);
 #endif
         return res;
     }
@@ -696,14 +710,14 @@ uint8_t init_Filt(uint8_t num, uint8_t ext, unsigned long ulData)
 #if DEBUG_EN
         Serial.print("Enter normal mode fall\r\nSet filter fail!!\r\n");
 #else
-        delay(10);
+        HAL_Delay(10);
 #endif
         return res;
     }
 #if DEBUG_EN
     Serial.print("set Filter success!!\r\n");
 #else
-    delay(10);
+    HAL_Delay(10);
 #endif
 
     return res;
