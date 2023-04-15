@@ -24,8 +24,6 @@
 #ifndef _MCP2515DFS_H_
 #define _MCP2515DFS_H_
 
-#include <Arduino.h>
-#include <SPI.h>
 #include <inttypes.h>
 
 
@@ -50,6 +48,10 @@
 #define MCP_RXB_RX_STDEXT   0x00
 #define MCP_RXB_RX_MASK     0x60
 #define MCP_RXB_BUKT_MASK   (1<<2)
+
+//SPI
+#define MCP_CS_PIN GPIO_PIN_9
+#define MCP_CS_GPIO GPIOC
 
 
 // Bits in the TXBnCTRL registers.

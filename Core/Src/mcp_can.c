@@ -45,49 +45,44 @@
   THE SOFTWARE.
 */
 #include "mcp_can.h"
+#include "stm32l0xx_hal.h"
 
-#define spi_readwrite   SPI.transfer
-#define spi_read()      spi_readwrite(0x00)
-#define SPI_BEGIN()     SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0))
-#define SPI_END()       SPI.endTransaction()
+#include "rm3100_spi.h"
 
+uint8_t   ext_flg;                         // identifier xxxID
+										// either extended (the 29 LSB) or standard (the 11 LSB)
+unsigned long  can_id;                  // can id
+uint8_t   dta_len;                         // data length
+uint8_t   dta[MAX_CHAR_IN_MESSAGE];        // data
+uint8_t   rtr;                             // rtr
+uint8_t   filhit;
+uint8_t   SPICS;
 /*********************************************************************************************************
 ** Function name:           mcp2515_reset
 ** Descriptions:            reset the device
 *********************************************************************************************************/
 void mcp2515_reset(void)
 {
-#ifdef SPI_HAS_TRANSACTION
-    SPI_BEGIN();
-#endif
-    MCP2515_SELECT();
-    spi_readwrite(MCP_RESET);
-    MCP2515_UNSELECT();
-#ifdef SPI_HAS_TRANSACTION
-    SPI_END();
-#endif
-    delay(10);
+	HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
+    uint8_t endereco = MCP_RESET;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
+    HAL_Delay(10);
 }
 
 /*********************************************************************************************************
 ** Function name:           mcp2515_readRegister
 ** Descriptions:            read register
 *********************************************************************************************************/
-byte mcp2515_readRegister(const byte address)
+uint8_t mcp2515_readRegister(const uint8_t address)
 {
-    byte ret;
-
-#ifdef SPI_HAS_TRANSACTION
-    SPI_BEGIN();
-#endif
-    MCP2515_SELECT();
-    spi_readwrite(MCP_READ);
-    spi_readwrite(address);
-    ret = spi_read();
-    MCP2515_UNSELECT();
-#ifdef SPI_HAS_TRANSACTION
-    SPI_END();
-#endif
+    uint8_t ret;
+    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
+    uint8_t endereco = MCP_READ;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+	HAL_SPI_Transmit(spi_handle, &address, 1, HAL_MAX_DELAY);
+	HAL_SPI_Receive(spi_handle, &ret, 1, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
 
     return ret;
 }
@@ -96,106 +91,82 @@ byte mcp2515_readRegister(const byte address)
 ** Function name:           mcp2515_readRegisterS
 ** Descriptions:            read registerS
 *********************************************************************************************************/
-void mcp2515_readRegisterS(const byte address, byte values[], const byte n)
+void mcp2515_readRegisterS(const uint8_t address, uint8_t values[], const uint8_t n)
 {
-    byte i;
-#ifdef SPI_HAS_TRANSACTION
-    SPI_BEGIN();
-#endif
-    MCP2515_SELECT();
-    spi_readwrite(MCP_READ);
-    spi_readwrite(address);
+    uint8_t i;
+    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
+    uint8_t endereco = MCP_READ;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &address, 1, HAL_MAX_DELAY);
     // mcp2515 has auto-increment of address-pointer
     for(i=0; i<n && i<CAN_MAX_CHAR_IN_MESSAGE; i++)
     {
-        values[i] = spi_read();
+    	HAL_SPI_Receive(spi_handle, &values[i], 1, HAL_MAX_DELAY);
     }
-    MCP2515_UNSELECT();
-#ifdef SPI_HAS_TRANSACTION
-    SPI_END();
-#endif
+     HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
 }
 
 /*********************************************************************************************************
 ** Function name:           mcp2515_setRegister
 ** Descriptions:            set register
 *********************************************************************************************************/
-void mcp2515_setRegister(const byte address, const byte value)
+void mcp2515_setRegister(const uint8_t address, const uint8_t value)
 {
-#ifdef SPI_HAS_TRANSACTION
-    SPI_BEGIN();
-#endif
-    MCP2515_SELECT();
-    spi_readwrite(MCP_WRITE);
-    spi_readwrite(address);
-    spi_readwrite(value);
-    MCP2515_UNSELECT();
-#ifdef SPI_HAS_TRANSACTION
-    SPI_END();
-#endif
+	HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
+    uint8_t endereco = MCP_WRITE;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &address, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &value, 1, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
 }
 
 /*********************************************************************************************************
 ** Function name:           mcp2515_setRegisterS
 ** Descriptions:            set registerS
 *********************************************************************************************************/
-void mcp2515_setRegisterS(const byte address, const byte values[], const byte n)
+void mcp2515_setRegisterS(const uint8_t address, const uint8_t values[], const uint8_t n)
 {
-    byte i;
-#ifdef SPI_HAS_TRANSACTION
-    SPI_BEGIN();
-#endif
-    MCP2515_SELECT();
-    spi_readwrite(MCP_WRITE);
-    spi_readwrite(address);
+    uint8_t i;
+    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
+    uint8_t endereco = MCP_WRITE;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &address, 1, HAL_MAX_DELAY);
 
     for(i=0; i<n; i++)
     {
-        spi_readwrite(values[i]);
+        HAL_SPI_Transmit(spi_handle, &values[i], 1, HAL_MAX_DELAY);
     }
-    MCP2515_UNSELECT();
-#ifdef SPI_HAS_TRANSACTION
-    SPI_END();
-#endif
+
+    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
 }
 
 /*********************************************************************************************************
 ** Function name:           mcp2515_modifyRegister
 ** Descriptions:            set bit of one register
 *********************************************************************************************************/
-void mcp2515_modifyRegister(const byte address, const byte mask, const byte data)
+void mcp2515_modifyRegister(const uint8_t address, const uint8_t mask, const uint8_t data)
 {
-#ifdef SPI_HAS_TRANSACTION
-    SPI_BEGIN();
-#endif
-    MCP2515_SELECT();
-    spi_readwrite(MCP_BITMOD);
-    spi_readwrite(address);
-    spi_readwrite(mask);
-    spi_readwrite(data);
-    MCP2515_UNSELECT();
-#ifdef SPI_HAS_TRANSACTION
-    SPI_END();
-#endif
+	HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
+    uint8_t endereco = MCP_BITMOD;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &address, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &mask, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &data, 1, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
 }
 
 /*********************************************************************************************************
 ** Function name:           mcp2515_readStatus
 ** Descriptions:            read mcp2515's Status
 *********************************************************************************************************/
-byte mcp2515_readStatus(void)
+uint8_t mcp2515_readStatus(void)
 {
-    byte i;
-#ifdef SPI_HAS_TRANSACTION
-    SPI_BEGIN();
-#endif
-    MCP2515_SELECT();
-    spi_readwrite(MCP_READ_STATUS);
-    i = spi_read();
-    MCP2515_UNSELECT();
-#ifdef SPI_HAS_TRANSACTION
-    SPI_END();
-#endif
+    uint8_t i;
+    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
+    uint8_t endereco = MCP_READ_STATUS;
+    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    HAL_SPI_Receive(spi_handle, &i, 1, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
 
     return i;
 }
@@ -204,9 +175,9 @@ byte mcp2515_readStatus(void)
 ** Function name:           mcp2515_setCANCTRL_Mode
 ** Descriptions:            set control mode
 *********************************************************************************************************/
-byte mcp2515_setCANCTRL_Mode(const byte newmode)
+uint8_t mcp2515_setCANCTRL_Mode(const uint8_t newmode)
 {
-    byte i;
+    uint8_t i;
 
     mcp2515_modifyRegister(MCP_CANCTRL, MODE_MASK, newmode);
 
@@ -225,9 +196,9 @@ byte mcp2515_setCANCTRL_Mode(const byte newmode)
 ** Function name:           mcp2515_configRate
 ** Descriptions:            set boadrate
 *********************************************************************************************************/
-byte mcp2515_configRate(const byte canSpeed)
+uint8_t mcp2515_configRate(const uint8_t canSpeed)
 {
-    byte set, cfg1, cfg2, cfg3;
+    uint8_t set, cfg1, cfg2, cfg3;
     set = 1;
     switch (canSpeed)
     {
@@ -361,7 +332,7 @@ byte mcp2515_configRate(const byte canSpeed)
 *********************************************************************************************************/
 void mcp2515_initCANBuffers(void)
 {
-    byte i, a1, a2, a3;
+    uint8_t i, a1, a2, a3;
 
     a1 = MCP_TXB0CTRL;
     a2 = MCP_TXB1CTRL;
@@ -383,10 +354,10 @@ void mcp2515_initCANBuffers(void)
 ** Function name:           mcp2515_init
 ** Descriptions:            init the device
 *********************************************************************************************************/
-byte mcp2515_init(const byte canSpeed)
+uint8_t mcp2515_init(const uint8_t canSpeed)
 {
 
-    byte res;
+    uint8_t res;
 
     mcp2515_reset();
 
@@ -473,27 +444,27 @@ byte mcp2515_init(const byte canSpeed)
 ** Function name:           mcp2515_write_id
 ** Descriptions:            write can id
 *********************************************************************************************************/
-void mcp2515_write_id(const byte mcp_addr, const byte ext, const unsigned long id)
+void mcp2515_write_id(const uint8_t mcp_addr, const uint8_t ext, const unsigned long id)
 {
     uint16_t canid;
-    byte tbufdata[4];
+    uint8_t tbufdata[4];
 
     canid = (uint16_t)(id & 0x0FFFF);
 
     if(ext == 1)
     {
-        tbufdata[MCP_EID0] = (byte) (canid & 0xFF);
-        tbufdata[MCP_EID8] = (byte) (canid >> 8);
+        tbufdata[MCP_EID0] = (uint8_t) (canid & 0xFF);
+        tbufdata[MCP_EID8] = (uint8_t) (canid >> 8);
         canid = (uint16_t)(id >> 16);
-        tbufdata[MCP_SIDL] = (byte) (canid & 0x03);
-        tbufdata[MCP_SIDL] += (byte) ((canid & 0x1C) << 3);
+        tbufdata[MCP_SIDL] = (uint8_t) (canid & 0x03);
+        tbufdata[MCP_SIDL] += (uint8_t) ((canid & 0x1C) << 3);
         tbufdata[MCP_SIDL] |= MCP_TXB_EXIDE_M;
-        tbufdata[MCP_SIDH] = (byte) (canid >> 5);
+        tbufdata[MCP_SIDH] = (uint8_t) (canid >> 5);
     }
     else
     {
-        tbufdata[MCP_SIDH] = (byte) (canid >> 3);
-        tbufdata[MCP_SIDL] = (byte) ((canid & 0x07) << 5);
+        tbufdata[MCP_SIDH] = (uint8_t) (canid >> 3);
+        tbufdata[MCP_SIDL] = (uint8_t) ((canid & 0x07) << 5);
         tbufdata[MCP_EID0] = 0;
         tbufdata[MCP_EID8] = 0;
     }
@@ -504,9 +475,9 @@ void mcp2515_write_id(const byte mcp_addr, const byte ext, const unsigned long i
 ** Function name:           mcp2515_read_id
 ** Descriptions:            read can id
 *********************************************************************************************************/
-void mcp2515_read_id(const byte mcp_addr, byte* ext, unsigned long* id)
+void mcp2515_read_id(const uint8_t mcp_addr, uint8_t* ext, unsigned long* id)
 {
-    byte tbufdata[4];
+    uint8_t tbufdata[4];
 
     *ext    = 0;
     *id     = 0;
@@ -529,14 +500,14 @@ void mcp2515_read_id(const byte mcp_addr, byte* ext, unsigned long* id)
 ** Function name:           mcp2515_write_canMsg
 ** Descriptions:            write msg
 *********************************************************************************************************/
-void mcp2515_write_canMsg(const byte buffer_sidh_addr, int rtrBit)
+void mcp2515_write_canMsg(const uint8_t buffer_sidh_addr, int rtrBit)
 {
-    byte mcp_addr;
+    uint8_t mcp_addr;
     mcp_addr = buffer_sidh_addr;
-    mcp2515_setRegisterS(mcp_addr+5, dta, dta_len);                  // write data bytes
+    mcp2515_setRegisterS(mcp_addr+5, dta, dta_len);                  // write data uint8_ts
     // Serial.print("RTR: ");
     // Serial.println(rtrBit);
-    if(rtrBit == 1)                                                   // if RTR set bit in byte
+    if(rtrBit == 1)                                                   // if RTR set bit in uint8_t
     {
         dta_len |= MCP_RTR_MASK;
     }
@@ -549,9 +520,9 @@ void mcp2515_write_canMsg(const byte buffer_sidh_addr, int rtrBit)
 ** Function name:           mcp2515_read_canMsg
 ** Descriptions:            read message
 *********************************************************************************************************/
-void mcp2515_read_canMsg(const byte buffer_sidh_addr)        // read can msg
+void mcp2515_read_canMsg(const uint8_t buffer_sidh_addr)        // read can msg
 {
-    byte mcp_addr, ctrl;
+    uint8_t mcp_addr, ctrl;
 
     mcp_addr = buffer_sidh_addr;
     mcp2515_read_id(mcp_addr, &ext_flg,&can_id);
@@ -568,7 +539,7 @@ void mcp2515_read_canMsg(const byte buffer_sidh_addr)        // read can msg
 ** Function name:           mcp2515_start_transmit
 ** Descriptions:            start transmit
 *********************************************************************************************************/
-void mcp2515_start_transmit(const byte mcp_addr)              // start transmit
+void mcp2515_start_transmit(const uint8_t mcp_addr)              // start transmit
 {
     mcp2515_modifyRegister(mcp_addr-1 , MCP_TXB_TXREQ_M, MCP_TXB_TXREQ_M);
 }
@@ -577,10 +548,10 @@ void mcp2515_start_transmit(const byte mcp_addr)              // start transmit
 ** Function name:           mcp2515_getNextFreeTXBuf
 ** Descriptions:            get Next free txbuf
 *********************************************************************************************************/
-byte mcp2515_getNextFreeTXBuf(byte *txbuf_n)                 // get Next free txbuf
+uint8_t mcp2515_getNextFreeTXBuf(uint8_t *txbuf_n)                 // get Next free txbuf
 {
-    byte res, i, ctrlval;
-    byte ctrlregs[MCP_N_TXBUFFERS] = { MCP_TXB0CTRL, MCP_TXB1CTRL, MCP_TXB2CTRL };
+    uint8_t res, i, ctrlval;
+    uint8_t ctrlregs[MCP_N_TXBUFFERS] = { MCP_TXB0CTRL, MCP_TXB1CTRL, MCP_TXB2CTRL };
 
     res = MCP_ALLTXBUSY;
     *txbuf_n = 0x00;
@@ -602,7 +573,7 @@ byte mcp2515_getNextFreeTXBuf(byte *txbuf_n)                 // get Next free tx
 ** Function name:           set CS
 ** Descriptions:            init CS pin and set UNSELECTED
 *********************************************************************************************************/
-MCP_CAN(byte _CS)
+MCP_CAN(uint8_t _CS)
 {
     SPICS = _CS;
 }
@@ -611,12 +582,10 @@ MCP_CAN(byte _CS)
 ** Function name:           init
 ** Descriptions:            init can and set speed
 *********************************************************************************************************/
-byte begin(byte speedset)
+uint8_t begin(uint8_t speedset)
 {
-    pinMode(SPICS, OUTPUT);
-    MCP2515_UNSELECT();
-    SPI.begin();
-    byte res = mcp2515_init(speedset);
+    HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
+    uint8_t res = mcp2515_init(speedset);
     return ((res == MCP2515_OK) ? CAN_OK : CAN_FAILINIT);
 }
 
@@ -624,9 +593,9 @@ byte begin(byte speedset)
 ** Function name:           init_Mask
 ** Descriptions:            init canid Masks
 *********************************************************************************************************/
-byte init_Mask(byte num, byte ext, unsigned long ulData)
+uint8_t init_Mask(uint8_t num, uint8_t ext, unsigned long ulData)
 {
-    byte res = MCP2515_OK;
+    uint8_t res = MCP2515_OK;
 #if DEBUG_EN
     Serial.print("Begin to set Mask!!\r\n");
 #else
@@ -672,9 +641,9 @@ byte init_Mask(byte num, byte ext, unsigned long ulData)
 ** Function name:           init_Filt
 ** Descriptions:            init canid filters
 *********************************************************************************************************/
-byte init_Filt(byte num, byte ext, unsigned long ulData)
+uint8_t init_Filt(uint8_t num, uint8_t ext, unsigned long ulData)
 {
-    byte res = MCP2515_OK;
+    uint8_t res = MCP2515_OK;
 #if DEBUG_EN
     Serial.print("Begin to set Filter!!\r\n");
 #else
@@ -744,7 +713,7 @@ byte init_Filt(byte num, byte ext, unsigned long ulData)
 ** Function name:           setMsg
 ** Descriptions:            set can message, such as dlc, id, dta[] and so on
 *********************************************************************************************************/
-byte setMsg(unsigned long id, byte ext, byte len, byte rtr, byte *pData)
+uint8_t setMsgExt(unsigned long id, uint8_t ext, uint8_t len, uint8_t rtr, uint8_t *pData)
 {
     ext_flg     = ext;
     can_id      = id;
@@ -762,16 +731,16 @@ byte setMsg(unsigned long id, byte ext, byte len, byte rtr, byte *pData)
 ** Function name:           setMsg
 ** Descriptions:            set can message, such as dlc, id, dta[] and so on
 *********************************************************************************************************/
-byte setMsg(unsigned long id, byte ext, byte len, byte *pData)
+uint8_t setMsg(unsigned long id, uint8_t ext, uint8_t len, uint8_t *pData)
 {
-    return setMsg(id, ext, len, 0, pData);
+    return setMsgExt(id, ext, len, 0, pData);
 }
 
 /*********************************************************************************************************
 ** Function name:           clearMsg
 ** Descriptions:            set all message to zero
 *********************************************************************************************************/
-byte clearMsg()
+uint8_t clearMsg()
 {
     can_id      = 0;
     dta_len     = 0;
@@ -791,9 +760,9 @@ byte clearMsg()
 ** Function name:           sendMsg
 ** Descriptions:            send message
 *********************************************************************************************************/
-byte sendMsg(int rtrBit)
+uint8_t sendMsg(int rtrBit)
 {
-    byte res, res1, txbuf_n;
+    uint8_t res, res1, txbuf_n;
     uint16_t uiTimeOut = 0;
 
     do {
@@ -828,9 +797,9 @@ byte sendMsg(int rtrBit)
 ** Function name:           sendMsgBuf
 ** Descriptions:            send buf
 *********************************************************************************************************/
-byte sendMsgBuf(unsigned long id, byte ext, byte rtr, byte len, byte *buf)
+uint8_t sendMsgBufExt(unsigned long id, uint8_t ext, uint8_t rtr, uint8_t len, uint8_t *buf)
 {
-    setMsg(id, ext, len, rtr, buf);
+    setMsgExt(id, ext, len, rtr, buf);
     // Serial.print("RTR00: ");
     // Serial.println(rtr, HEX);
     return sendMsg(rtr);
@@ -840,7 +809,7 @@ byte sendMsgBuf(unsigned long id, byte ext, byte rtr, byte len, byte *buf)
 ** Function name:           sendMsgBuf
 ** Descriptions:            send buf
 *********************************************************************************************************/
-byte sendMsgBuf(unsigned long id, byte ext, byte len, byte *buf)
+uint8_t sendMsgBuf(unsigned long id, uint8_t ext, uint8_t len, uint8_t *buf)
 {
     setMsg(id, ext, len, buf);
     return sendMsg(0);
@@ -851,9 +820,9 @@ byte sendMsgBuf(unsigned long id, byte ext, byte len, byte *buf)
 ** Function name:           readMsg
 ** Descriptions:            read message
 *********************************************************************************************************/
-byte readMsg()
+uint8_t readMsg()
 {
-    byte stat, res;
+    uint8_t stat, res;
 
     stat = mcp2515_readStatus();
 
@@ -880,9 +849,9 @@ byte readMsg()
 ** Function name:           readMsgBuf
 ** Descriptions:            read message buf
 *********************************************************************************************************/
-byte readMsgBuf(byte *len, byte buf[])
+uint8_t readMsgBuf(uint8_t *len, uint8_t buf[])
 {
-    byte  rc;
+    uint8_t  rc;
 
     rc = readMsg();
 
@@ -902,9 +871,9 @@ byte readMsgBuf(byte *len, byte buf[])
 ** Function name:           readMsgBufID
 ** Descriptions:            read message buf and can bus source ID
 *********************************************************************************************************/
-byte readMsgBufID(unsigned long *ID, byte *len, byte buf[])
+uint8_t readMsgBufID(unsigned long *ID, uint8_t *len, uint8_t buf[])
 {
-    byte rc;
+    uint8_t rc;
     rc = readMsg();
 
     if(rc == CAN_OK) {
@@ -924,9 +893,9 @@ byte readMsgBufID(unsigned long *ID, byte *len, byte buf[])
 ** Function name:           checkReceive
 ** Descriptions:            check if got something
 *********************************************************************************************************/
-byte checkReceive(void)
+uint8_t checkReceive(void)
 {
-    byte res;
+    uint8_t res;
     res = mcp2515_readStatus();                                         // RXnIF in Bit 1 and 0
     return ((res & MCP_STAT_RXIF_MASK)?CAN_MSGAVAIL:CAN_NOMSG);
 }
@@ -935,9 +904,9 @@ byte checkReceive(void)
 ** Function name:           checkError
 ** Descriptions:            if something error
 *********************************************************************************************************/
-byte checkError(void)
+uint8_t checkError(void)
 {
-    byte eflg = mcp2515_readRegister(MCP_EFLG);
+    uint8_t eflg = mcp2515_readRegister(MCP_EFLG);
     return ((eflg & MCP_EFLG_ERRORMASK) ? CAN_CTRLERROR : CAN_OK);
 }
 
@@ -954,7 +923,7 @@ unsigned long getCanId(void)
 ** Function name:           isRemoteRequest
 ** Descriptions:            when receive something you can check if it was a request
 *********************************************************************************************************/
-byte isRemoteRequest(void)
+uint8_t isRemoteRequest(void)
 {
     return rtr;
 }
@@ -963,7 +932,7 @@ byte isRemoteRequest(void)
 ** Function name:           isExtendedFrame
 ** Descriptions:            did we just receive standard 11bit frame or extended 29bit? 0 = std, 1 = ext
 *********************************************************************************************************/
-byte isExtendedFrame(void)
+uint8_t isExtendedFrame(void)
 {
     return ext_flg;
 }

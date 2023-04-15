@@ -28,88 +28,74 @@
 
 #define MAX_CHAR_IN_MESSAGE 8
 
-class MCP_CAN
-{
-    private:
 
-    byte   ext_flg;                         // identifier xxxID
-                                            // either extended (the 29 LSB) or standard (the 11 LSB)
-    unsigned long  can_id;                  // can id
-    byte   dta_len;                         // data length
-    byte   dta[MAX_CHAR_IN_MESSAGE];        // data
-    byte   rtr;                             // rtr
-    byte   filhit;
-    byte   SPICS;
 
 /*
 *  mcp2515 driver function
 */
 
-private:
 
-    void mcp2515_reset(void);                                   // reset mcp2515
+void mcp2515_reset(void);                                   // reset mcp2515
 
-    byte mcp2515_readRegister(const byte address);              // read mcp2515's register
+uint8_t mcp2515_readRegister(const uint8_t address);              // read mcp2515's register
 
-    void mcp2515_readRegisterS(const byte address,
-	                       byte values[],
-                               const byte n);
-    void mcp2515_setRegister(const byte address,                // set mcp2515's register
-                             const byte value);
+void mcp2515_readRegisterS(const uint8_t address,
+					   uint8_t values[],
+						   const uint8_t n);
+void mcp2515_setRegister(const uint8_t address,                // set mcp2515's register
+						 const uint8_t value);
 
-    void mcp2515_setRegisterS(const byte address,               // set mcp2515's registers
-                              const byte values[],
-                              const byte n);
+void mcp2515_setRegisterS(const uint8_t address,               // set mcp2515's registers
+						  const uint8_t values[],
+						  const uint8_t n);
 
-    void mcp2515_initCANBuffers(void);
+void mcp2515_initCANBuffers(void);
 
-    void mcp2515_modifyRegister(const byte address,             // set bit of one register
-                                const byte mask,
-                                const byte data);
+void mcp2515_modifyRegister(const uint8_t address,             // set bit of one register
+							const uint8_t mask,
+							const uint8_t data);
 
-    byte mcp2515_readStatus(void);                              // read mcp2515's Status
-    byte mcp2515_setCANCTRL_Mode(const byte newmode);           // set mode
-    byte mcp2515_configRate(const byte canSpeed);               // set boadrate
-    byte mcp2515_init(const byte canSpeed);                     // mcp2515init
+uint8_t mcp2515_readStatus(void);                              // read mcp2515's Status
+uint8_t mcp2515_setCANCTRL_Mode(const uint8_t newmode);           // set mode
+uint8_t mcp2515_configRate(const uint8_t canSpeed);               // set boadrate
+uint8_t mcp2515_init(const uint8_t canSpeed);                     // mcp2515init
 
-    void mcp2515_write_id( const byte mcp_addr,                 // write can id
-                               const byte ext,
-                               const unsigned long id );
+void mcp2515_write_id( const uint8_t mcp_addr,                 // write can id
+						   const uint8_t ext,
+						   const unsigned long id );
 
-    void mcp2515_read_id( const byte mcp_addr,                  // read can id
-                                    byte* ext,
-                                    unsigned long* id );
+void mcp2515_read_id( const uint8_t mcp_addr,                  // read can id
+								uint8_t* ext,
+								unsigned long* id );
 
-    void mcp2515_write_canMsg( const byte buffer_sidh_addr, int rtrBit );   // write can msg
-    void mcp2515_read_canMsg( const byte buffer_sidh_addr);     // read can msg
-    void mcp2515_start_transmit(const byte mcp_addr);           // start transmit
-    byte mcp2515_getNextFreeTXBuf(byte *txbuf_n);               // get Next free txbuf
+void mcp2515_write_canMsg( const uint8_t buffer_sidh_addr, int rtrBit );   // write can msg
+void mcp2515_read_canMsg( const uint8_t buffer_sidh_addr);     // read can msg
+void mcp2515_start_transmit(const uint8_t mcp_addr);           // start transmit
+uint8_t mcp2515_getNextFreeTXBuf(uint8_t *txbuf_n);               // get Next free txbuf
 
 /*
 *  can operator function
 */
 
-    byte setMsg(unsigned long id, byte ext, byte len, byte rtr, byte *pData);   // set message
-    byte setMsg(unsigned long id, byte ext, byte len, byte *pData);             //  set message
-    byte clearMsg();                                                // clear all message to zero
-    byte readMsg();                                                 // read message
-    byte sendMsg(int rtrBit);                                                 // send message
+uint8_t setMsgExt(unsigned long id, uint8_t ext, uint8_t len, uint8_t rtr, uint8_t *pData);   // set message
+uint8_t setMsg(unsigned long id, uint8_t ext, uint8_t len, uint8_t *pData);             //  set message
+uint8_t clearMsg();                                                // clear all message to zero
+uint8_t readMsg();                                                 // read message
+uint8_t sendMsg(int rtrBit);                                                 // send message
 
-public:
-    MCP_CAN(byte _CS);
-    byte begin(byte speedset);                                      // init can
-    byte init_Mask(byte num, byte ext, unsigned long ulData);       // init Masks
-    byte init_Filt(byte num, byte ext, unsigned long ulData);       // init filters
-    byte sendMsgBuf(unsigned long id, byte ext, byte rtr, byte len, byte *buf);     // send buf
-    byte sendMsgBuf(unsigned long id, byte ext, byte len, byte *buf);               // send buf
-    byte readMsgBuf(byte *len, byte *buf);                          // read buf
-    byte readMsgBufID(unsigned long *ID, byte *len, byte *buf);     // read buf with object ID
-    byte checkReceive(void);                                        // if something received
-    byte checkError(void);                                          // if something error
-    unsigned long getCanId(void);                                   // get can id when receive
-    byte isRemoteRequest(void);                                     // get RR flag when receive
-    byte isExtendedFrame(void);                                     // did we recieve 29bit frame?
-};
+MCP_CAN(uint8_t _CS);
+uint8_t begin(uint8_t speedset);                                      // init can
+uint8_t init_Mask(uint8_t num, uint8_t ext, unsigned long ulData);       // init Masks
+uint8_t init_Filt(uint8_t num, uint8_t ext, unsigned long ulData);       // init filters
+uint8_t sendMsgBufExt(unsigned long id, uint8_t ext, uint8_t rtr, uint8_t len, uint8_t *buf);     // send buf
+uint8_t sendMsgBuf(unsigned long id, uint8_t ext, uint8_t len, uint8_t *buf);               // send buf
+uint8_t readMsgBuf(uint8_t *len, uint8_t *buf);                          // read buf
+uint8_t readMsgBufID(unsigned long *ID, uint8_t *len, uint8_t *buf);     // read buf with object ID
+uint8_t checkReceive(void);                                        // if something received
+uint8_t checkError(void);                                          // if something error
+unsigned long getCanId(void);                                   // get can id when receive
+uint8_t isRemoteRequest(void);                                     // get RR flag when receive
+uint8_t isExtendedFrame(void);                                     // did we recieve 29bit frame?
 
 #endif
 /*********************************************************************************************************

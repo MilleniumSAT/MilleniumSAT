@@ -8,6 +8,8 @@
 #ifndef RM3100_SPI_H
 #define RM3100_SPI_H
 
+#include "stm32l0xx_hal.h"
+
 /*Definição de pino Data Ready*/
 #define DR_PIN GPIO_PIN_3 //Set pin D8 to be the Data Ready Pin
 #define DR_GPIO GPIOB
