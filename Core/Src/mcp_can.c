@@ -194,9 +194,7 @@ uint8_t mcp2515_setCANCTRL_Mode(const uint8_t newmode)
 
     mcp2515_modifyRegister(MCP_CANCTRL, MODE_MASK, newmode);
 
-    while (1){
-    	i = mcp2515_readRegister(MCP_CANCTRL);
-    }
+    i = mcp2515_readRegister(MCP_CANCTRL);
     i &= MODE_MASK;
 
     if(i == newmode)
@@ -376,22 +374,6 @@ uint8_t mcp2515_init(const uint8_t canSpeed)
 
     mcp2515_reset();
 
-    res = mcp2515_setCANCTRL_Mode(MODE_CONFIG);
-    if(res > 0)
-    {
-#if DEBUG_EN
-        Serial.print("Enter setting mode fall\r\n");
-#else
-        HAL_Delay(10);
-#endif
-        return res;
-    }
-#if DEBUG_EN
-    Serial.print("Enter setting mode success \r\n");
-#else
-    HAL_Delay(10);
-#endif
-
     // set boadrate
     if(mcp2515_configRate(canSpeed))
     {
@@ -404,6 +386,22 @@ uint8_t mcp2515_init(const uint8_t canSpeed)
     }
 #if DEBUG_EN
     Serial.print("set rate success!!\r\n");
+#else
+    HAL_Delay(10);
+#endif
+
+    res = mcp2515_setCANCTRL_Mode(MODE_CONFIG);
+    if(res > 0)
+    {
+#if DEBUG_EN
+        Serial.print("Enter setting mode fall\r\n");
+#else
+        HAL_Delay(10);
+#endif
+        return res;
+    }
+#if DEBUG_EN
+    Serial.print("Enter setting mode success \r\n");
 #else
     HAL_Delay(10);
 #endif
