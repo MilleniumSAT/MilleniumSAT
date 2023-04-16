@@ -27,7 +27,8 @@
 #include "rm3100_spi.h"
 #include "tmp100_i2c.h"
 #include "i2c_detect.h"
-#include "AT24C512C.h"
+struct can_frame canMsg1;
+struct can_frame canMsg2;
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,8 +48,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
+
 SPI_HandleTypeDef hspi2;
-struct can_frame canMsg1;
 
 /* USER CODE BEGIN PV */
 
@@ -69,7 +70,6 @@ static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_CAN_Init(void);
-static void MX_AT512C_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -107,25 +107,12 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_I2C1_Init();
-  i2c_detect();
   MX_SPI2_Init();
   MX_GPIO_Init();
   //  GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN 2 */
   MX_CAN_Init();
-  //MX_AT512C_Init();
 
-
-	canMsg1.can_id  = 0x0F6;
-	canMsg1.can_dlc = 8;
-	canMsg1.data[0] = 0x01;
-	canMsg1.data[1] = 0x01;
-	canMsg1.data[2] = 0x01;
-	canMsg1.data[3] = 0x01;
-	canMsg1.data[4] = 0x01;
-	canMsg1.data[5] = 0x01;
-	canMsg1.data[6] = 0x01;
-	canMsg1.data[7] = 0x01;
 
   /* USER CODE END 2 */
 
@@ -215,6 +202,7 @@ static void MX_I2C1_Init(void)
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
   hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
   if (HAL_I2C_Init(&hi2c1) != HAL_OK)
@@ -323,7 +311,7 @@ static void MX_GPIO_Init(void)
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
   HAL_Delay(100);
-  //RM3100_SPI_SETUP(&GPIO_InitStruct);
+  RM3100_SPI_SETUP(&GPIO_InitStruct);
   HAL_Delay(100);
   TMP100_I2C_SETUP(RESOLUTION_12_BIT);
   HAL_Delay(100);
@@ -337,28 +325,17 @@ static void MX_CAN_Init(void)
 	setBitrate1(CAN_5KBPS);
 	setNormalMode();
 
+	canMsg1.can_id  = 0x0F6;
+	canMsg1.can_dlc = 8;
+	canMsg1.data[0] = 0x01;
+	canMsg1.data[1] = 0x01;
+	canMsg1.data[2] = 0x01;
+	canMsg1.data[3] = 0x01;
+	canMsg1.data[4] = 0x01;
+	canMsg1.data[5] = 0x01;
+	canMsg1.data[6] = 0x01;
+	canMsg1.data[7] = 0x01;
 }
-
-static void MX_AT512C_Init(void)
-{
-	bool writeStatus = false;
-	bool readStatus = false;
-	bool eraseStatus = false;
-	#define MEM_ADDR    0x00u
-	uint8_t  wData[] = "Hello World 123";
-	uint8_t  rData[25];
-
-	if(at24_isConnected()){
-		// at24_eraseChip can take more than 30 Sec
-		eraseStatus = at24_eraseChip();
-		HAL_Delay(10);
-		writeStatus = at24_write(MEM_ADDR,wData, 15, 100);
-		HAL_Delay(10);
-		readStatus = at24_read(MEM_ADDR,rData, 15, 100);
-		HAL_Delay(10);
-	}
-}
-
 /* USER CODE END 4 */
 
 /**
