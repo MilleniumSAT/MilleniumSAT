@@ -78,15 +78,12 @@ void RM3100_SPI_WRITE(uint8_t addr, uint8_t *data, uint16_t size)
 
     HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
 
-	/*faz manimpulação no endereço e o envia */
-    uint8_t endereco = addr & 0x7F;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    uint8_t buffer[2];
+    buffer[0] = addr & 0x7F;
+    buffer[1] = data[0];
 
-    /*
-     * envia o vetor de dados - segundo a documentação da função.
-     * como data já é um ponteiro, não é necessário o operador de endereço &
-     */
-    HAL_SPI_Transmit(spi_handle, data, size, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &buffer[0], 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &buffer[1], 1, HAL_MAX_DELAY);
 
     HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);
 }
@@ -96,11 +93,13 @@ void RM3100_SPI_WRITE(uint8_t addr, uint8_t *data, uint16_t size)
  */
 void RM3100_SPI_READ(uint8_t addr, uint8_t *data, uint16_t size)
 {
-  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);                                 // delay(100)
-  uint8_t buffer[2]= {addr | 0x80, 0x00};
-
-  HAL_SPI_Transmit(spi_handle, buffer, 2, 1000);
-  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);                    // digitalWrite(PIN_CS, HIGH)
+	  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET); // digitalWrite(PIN_CS, LOW)                                    // delay(100)
+	  uint8_t buffer[2];
+	  buffer[0] = addr | 0x80;
+	  buffer[1] = 0x00;
+	  HAL_SPI_Transmit(spi_handle, &buffer[0], 1, 1000);
+	  HAL_SPI_TransmitReceive(spi_handle, &buffer, data, 1, 1000); // SPI.transfer(addr | 0x80); data = SPI.transfer(0);
+	  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);                    // digitalWrite(PIN_CS, HIGH)
 }
 
 //newCC is the new cycle count value (16 bits) to change the data acquisition
@@ -143,7 +142,7 @@ void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
   cycleCount = (cc1 << 8) | cc2;
   printf("Cycle Counts = %u\n", (uint) cycleCount);
 
- gain = (0.3671 * (float)cycleCount) + 1.5;
+ float gain = (0.3671 * (float)cycleCount) + 1.5;
 
  uint8_t value;
   if (SINGLE_MODE)

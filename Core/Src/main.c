@@ -17,6 +17,7 @@
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <mcp2515.h>
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -26,6 +27,8 @@
 #include "rm3100_spi.h"
 #include "tmp100_i2c.h"
 #include "i2c_detect.h"
+struct can_frame canMsg1;
+struct can_frame canMsg2;
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,6 +69,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_SPI2_Init(void);
+static void MX_CAN_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -107,6 +111,9 @@ int main(void)
   MX_GPIO_Init();
   //  GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN 2 */
+  MX_CAN_Init();
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -116,8 +123,9 @@ int main(void)
     TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
     HAL_Delay(100);
     RM3100_DATA mag_data = RM3100_SPI_DATA();
-    printf("x_counts = %ld", mag_data.x);
     HAL_Delay(100);
+	enum ERROR retorno = sendMessage1(&canMsg1);
+    HAL_Delay(1000);
 
     /* USER CODE END WHILE */
 
@@ -286,6 +294,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PB3 */
   GPIO_InitStruct.Pin = GPIO_PIN_3;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -293,14 +310,32 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
+  HAL_Delay(100);
   RM3100_SPI_SETUP(&GPIO_InitStruct);
-  HAL_Delay(1000);
+  HAL_Delay(100);
   TMP100_I2C_SETUP(RESOLUTION_12_BIT);
+  HAL_Delay(100);
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+static void MX_CAN_Init(void)
+{
+	reset();
+	setBitrate1(CAN_5KBPS);
+	setNormalMode();
 
+	canMsg1.can_id  = 0x0F6;
+	canMsg1.can_dlc = 8;
+	canMsg1.data[0] = 0x01;
+	canMsg1.data[1] = 0x01;
+	canMsg1.data[2] = 0x01;
+	canMsg1.data[3] = 0x01;
+	canMsg1.data[4] = 0x01;
+	canMsg1.data[5] = 0x01;
+	canMsg1.data[6] = 0x01;
+	canMsg1.data[7] = 0x01;
+}
 /* USER CODE END 4 */
 
 /**
