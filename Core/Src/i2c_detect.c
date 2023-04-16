@@ -8,6 +8,7 @@
  */
 
 #include "i2c_detect.h"
+#include "tmp100_i2c.h"
 
 /**
  * @brief   Scans trough the I2C for valid addresses, then prints the out with printf().
@@ -17,7 +18,6 @@
 void i2c_detect(void)
 {
   uint8_t devices = 0u;
-  extern I2C_HandleTypeDef hi2c1;
 
   printf("Searching for I2C devices on the bus...\n");
   /* Values outside 0x03 and 0x77 are invalid. */
@@ -25,7 +25,7 @@ void i2c_detect(void)
   {
     uint8_t address = i << 1u ;
     /* In case there is a positive feedback, print it out. */
-    if (HAL_OK == HAL_I2C_IsDeviceReady(&hi2c1, address, 3u, 10u))
+    if (HAL_OK == HAL_I2C_IsDeviceReady(i2c_handle, address, 3u, 10u))
     {
       printf("Device found: 0x%02X\n", address);
       devices++;
