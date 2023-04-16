@@ -27,8 +27,7 @@
 #include "rm3100_spi.h"
 #include "tmp100_i2c.h"
 #include "i2c_detect.h"
-struct can_frame canMsg1;
-struct can_frame canMsg2;
+#include "AT24C512C.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,8 +47,8 @@ struct can_frame canMsg2;
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
-
 SPI_HandleTypeDef hspi2;
+struct can_frame canMsg1;
 
 /* USER CODE BEGIN PV */
 
@@ -70,6 +69,7 @@ static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_CAN_Init(void);
+static void MX_AT512C_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -107,11 +107,19 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_I2C1_Init();
+
+
+
+
+  i2c_detect();
+
   MX_SPI2_Init();
   MX_GPIO_Init();
   //  GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN 2 */
-  MX_CAN_Init();
+ // MX_CAN_Init();
+ // MX_AT512C_Init();
+
 
 
   /* USER CODE END 2 */
@@ -121,10 +129,10 @@ int main(void)
   while (1)
   {
     TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
-    HAL_Delay(100);
-    RM3100_DATA mag_data = RM3100_SPI_DATA();
-    HAL_Delay(100);
-	enum ERROR retorno = sendMessage1(&canMsg1);
+//    HAL_Delay(100);
+//    RM3100_DATA mag_data = RM3100_SPI_DATA();
+//    HAL_Delay(100);
+//	enum ERROR retorno = sendMessage1(&canMsg1);
     HAL_Delay(1000);
 
     /* USER CODE END WHILE */
@@ -311,7 +319,7 @@ static void MX_GPIO_Init(void)
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
   HAL_Delay(100);
-  RM3100_SPI_SETUP(&GPIO_InitStruct);
+  //RM3100_SPI_SETUP(&GPIO_InitStruct);
   HAL_Delay(100);
   TMP100_I2C_SETUP(RESOLUTION_12_BIT);
   HAL_Delay(100);
@@ -336,6 +344,33 @@ static void MX_CAN_Init(void)
 	canMsg1.data[6] = 0x01;
 	canMsg1.data[7] = 0x01;
 }
+
+static void MX_AT512C_Init(void)
+{
+  AT24Cxx_devices_t device_array;
+
+  AT24Cxx_init(&device_array, AT24Cxx_SLV_ADDR, i2c_handle);
+
+  uint8_t test_receive = 0;
+
+  uint8_t test_bytes[66] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
+  	  	  	  17,18,19,20,21,22,23,24,25,26,27,28,29,30,
+ 	  	  	  31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,
+ 	  	  	  46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,
+  	  	  	  61,62,63,64,65,66};
+
+  while (1)
+  {
+	  AT24Cxx_write_byte(device_array.devices[0], 0x50, 0x10);
+
+	  HAL_Delay(2);
+//
+//	  AT24Cxx_read_byte(device_array.devices[0], &test_receive, 0x10);
+//
+//	  HAL_Delay(1000);
+  }
+}
+
 /* USER CODE END 4 */
 
 /**
