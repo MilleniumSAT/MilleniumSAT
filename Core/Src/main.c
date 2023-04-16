@@ -112,27 +112,8 @@ int main(void)
   //  GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN 2 */
   MX_CAN_Init();
-//canMsg1.can_id  = 0x0F6;
-//canMsg1.can_dlc = 8;
-//canMsg1.data[0] = 0x01;
-//canMsg1.data[1] = 0x01;
-//canMsg1.data[2] = 0x01;
-//canMsg1.data[3] = 0x01;
-//canMsg1.data[4] = 0x01;
-//canMsg1.data[5] = 0x01;
-//canMsg1.data[6] = 0x01;
-//canMsg1.data[7] = 0x01;
-//
-//canMsg2.can_id  = 0x036;
-//canMsg2.can_dlc = 8;
-//canMsg2.data[0] = 0x01;
-//canMsg2.data[1] = 0x01;
-//canMsg2.data[2] = 0x01;
-//canMsg2.data[3] = 0x01;
-//canMsg2.data[4] = 0x01;
-//canMsg2.data[5] = 0x01;
-//canMsg2.data[6] = 0x01;
-//canMsg2.data[7] = 0x01;
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -142,7 +123,6 @@ int main(void)
     TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
     HAL_Delay(100);
     RM3100_DATA mag_data = RM3100_SPI_DATA();
-    printf("x_counts = %ld", mag_data.x);
     HAL_Delay(100);
 	enum ERROR retorno = sendMessage1(&canMsg1);
     HAL_Delay(1000);
@@ -344,6 +324,17 @@ static void MX_CAN_Init(void)
 	reset();
 	setBitrate1(CAN_5KBPS);
 	setNormalMode();
+
+	canMsg1.can_id  = 0x0F6;
+	canMsg1.can_dlc = 8;
+	canMsg1.data[0] = 0x01;
+	canMsg1.data[1] = 0x01;
+	canMsg1.data[2] = 0x01;
+	canMsg1.data[3] = 0x01;
+	canMsg1.data[4] = 0x01;
+	canMsg1.data[5] = 0x01;
+	canMsg1.data[6] = 0x01;
+	canMsg1.data[7] = 0x01;
 }
 /* USER CODE END 4 */
 
