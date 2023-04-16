@@ -1,3 +1,4 @@
+#include "AT24C512C.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include "AT24C512C.h"
@@ -7,230 +8,162 @@
 #include <math.h>
 #include <tmp100_i2c.h>
 
-HAL_StatusTypeDef status;
 
-uint16_t AT24Cxx_get_max_addr ( AT24Cxx_device_t* dev )
+#if (_EEPROM_USE_FREERTOS == 1)
+#include "cmsis_os.h"
+#define at24_delay(x)   osDelay(x)
+#else
+#define at24_delay(x)   HAL_Delay(x)
+#endif
+
+#if (_EEPROM_SIZE_KBIT == 1) || (_EEPROM_SIZE_KBIT == 2)
+#define _EEPROM_PSIZE     8
+#elif (_EEPROM_SIZE_KBIT == 4) || (_EEPROM_SIZE_KBIT == 8) || (_EEPROM_SIZE_KBIT == 16)
+#define _EEPROM_PSIZE     16
+#else
+#define _EEPROM_PSIZE     32
+#endif
+
+static uint8_t at24_lock = 0;
+
+/**
+  * @brief  Checks if memory device is ready for communication.
+  * @param  none
+  * @retval bool status
+  */
+bool at24_isConnected(void)
 {
-	switch(dev->dev_model){
-	case AT24C01:
-		return AT24C01_MAX_ADDR;
-		break;
-	case AT24C32:
-		return AT24C32_MAX_ADDR;
-		break;
-	case AT24C64:
-		return AT24C64_MAX_ADDR;
-		break;
-	case AT24C128:
-		return AT24C128_MAX_ADDR;
-		break;
-	case AT24C256:
-		return AT24C256_MAX_ADDR;
-		break;
-		//not supported yet, will overflow
-	case AT24C512:
-		return AT24C512_MAX_ADDR;
-		break;
-	default:
-		return 0;
-		break;
-	}
-	return 0;
+  #if (_EEPROM_USE_WP_PIN==1)
+  HAL_GPIO_WritePin(_EEPROM_WP_GPIO,_EEPROM_WP_PIN,GPIO_PIN_SET);
+  #endif
+  if (HAL_I2C_IsDeviceReady(i2c_handle, _EEPROM_ADDRESS, 2, 100) == HAL_OK)
+    return true;
+  else
+    return false;
 }
 
-uint16_t AT24Cxx_get_pg_size ( AT24Cxx_device_t* dev )
+/**
+  * @brief  Write an amount of data in blocking mode to a specific memory address
+  * @param  address Internal memory address
+  * @param  data Pointer to data buffer
+  * @param  len Amount of data to be sent
+  * @param  timeout Timeout duration
+  * @retval bool status
+  */
+bool at24_write(uint16_t address, uint8_t *data, size_t len, uint32_t timeout)
 {
-	switch(dev->dev_model){
-	case AT24C01:
-		return AT24C01_PG_SIZE;
-		break;
-	case AT24C32:
-		return AT24C32_PG_SIZE;
-		break;
-	case AT24C64:
-		return AT24C64_PG_SIZE;
-		break;
-	case AT24C128:
-		return AT24C128_PG_SIZE;
-		break;
-	case AT24C256:
-		return AT24C256_PG_SIZE;
-		break;
-	case AT24C512:
-		//not supported yet, will overflow
-		return AT24C512_PG_SIZE;
-		break;
-	default:
-		return 0;
-		break;
-	}
-	return 0;
-}
+  if (at24_lock == 1)
+    return false;
 
-AT24Cxx_ERR_TypeDef AT24Cxx_init( AT24Cxx_devices_t* devices,
-	uint8_t init_dev_addr, I2C_HandleTypeDef* i2c_handle)
-{
-	//adds first device to AT32Cxx_devices array
-	//further devices should be added by calling AT24Cxx_add_dev()
-	AT24Cxx_device_t *at = (AT24Cxx_device_t*)calloc(1, sizeof(AT24Cxx_device_t));
-	if ( at == NULL )
-		return at_init_err;
+  at24_lock = 1;
+  uint16_t w;
+  uint32_t startTime = HAL_GetTick();
 
-	for(uint8_t i = 0; i < 8; i++)
-			devices->devices[i] = 0x00;
+  #if	(_EEPROM_USE_WP_PIN==1)
+  HAL_GPIO_WritePin(_EEPROM_WP_GPIO, _EEPROM_WP_PIN,GPIO_PIN_RESET);
+  #endif
 
-	at->dev_addr = init_dev_addr;
-	at->next_dev = NULL;
-	at->prev_dev = NULL;
-	at->dev_model = AT24Cxx_USED_MODEL;
-	at->dev_port = i2c_handle;
-	at->initialized = true;
-	devices->dev_count = 1;
-	devices->devices[0] = at;
-
-	return at_ok;
-}
-
-AT24Cxx_ERR_TypeDef AT24Cxx_add_dev( AT24Cxx_devices_t* devices,
-	uint8_t dev_addr, I2C_HandleTypeDef* i2c_handle)
-{
-	if(devices->dev_count == 0 || devices->dev_count > 8)
-		return at_add_dev_err;
-
-	AT24Cxx_device_t *at = (AT24Cxx_device_t*)calloc(1, sizeof(AT24Cxx_device_t));
-	if ( at == NULL )
-		return at_add_dev_err;
-
-	at->dev_addr = dev_addr;
-	at->next_dev = NULL;
-	at->prev_dev = devices->devices[devices->dev_count-1];
-	at->dev_model = AT24Cxx_USED_MODEL;
-	at->dev_port = i2c_handle;
-	at->initialized = true;
-	devices->dev_count++;
-	devices->devices[devices->dev_count-1] = at;
-
-	//update previous device's next device
-	devices->devices[devices->dev_count-2]->next_dev = at;
-	return at_ok;
-}
-
-AT24Cxx_device_t* AT24Cxx_get_dev( AT24Cxx_devices_t* devices, uint8_t index)
-{
-	return devices->devices[index];
-}
-
-AT24Cxx_ERR_TypeDef AT24Cxx_write_byte( AT24Cxx_device_t* dev, uint8_t data,
-        uint16_t mem_addr)
-{
-    if(mem_addr > 0x00 && mem_addr < AT24Cxx_get_max_addr(dev)){
-        // Initialize the I2C transmission
-        HAL_StatusTypeDef status = HAL_I2C_IsDeviceReady(i2c_handle,
-        		AT24Cxx_SLV_ADDR, 10,
-            AT24Cxx_I2C_TIMOUT);
-        if (status != HAL_OK) {
-            return at_w_byte_err;
-        }
-
-        // Write data to the memory address
-        status = HAL_I2C_Mem_Write(i2c_handle,
-        		AT24CX_ID ,
-            (uint16_t) mem_addr, I2C_MEMADD_SIZE_8BIT, &data, 1,
-            AT24Cxx_I2C_TIMOUT);
-        if (status != HAL_OK) {
-            return at_w_byte_err;
-        }
-        return at_ok;
+  while (1)
+  {
+    w = _EEPROM_PSIZE - (address  % _EEPROM_PSIZE);
+    if (w > len)
+      w = len;
+    #if ((_EEPROM_SIZE_KBIT==1) || (_EEPROM_SIZE_KBIT==2))
+    if (HAL_I2C_Mem_Write(i2c_handle, _EEPROM_ADDRESS, address, I2C_MEMADD_SIZE_8BIT, data, w, 100) == HAL_OK)
+    #elif (_EEPROM_SIZE_KBIT==4)
+    if (HAL_I2C_Mem_Write(i2c_handle, _EEPROM_ADDRESS | ((address & 0x0100) >> 7), (address & 0xff), I2C_MEMADD_SIZE_8BIT, data, w, 100) == HAL_OK)
+    #elif (_EEPROM_SIZE_KBIT==8)
+    if (HAL_I2C_Mem_Write(i2c_handle, _EEPROM_ADDRESS | ((address & 0x0300) >> 7), (address & 0xff), I2C_MEMADD_SIZE_8BIT, data, w, 100) == HAL_OK)
+    #elif (_EEPROM_SIZE_KBIT==16)
+    if (HAL_I2C_Mem_Write(i2c_handle, _EEPROM_ADDRESS | ((address & 0x0700) >> 7), (address & 0xff), I2C_MEMADD_SIZE_8BIT, data, w, 100) == HAL_OK)
+    #else
+    if (HAL_I2C_Mem_Write(i2c_handle, _EEPROM_ADDRESS, address, I2C_MEMADD_SIZE_16BIT, data, w, 100) == HAL_OK)
+    #endif
+    {
+      at24_delay(10);
+      len -= w;
+      data += w;
+      address += w;
+      if (len == 0)
+      {
+        #if (_EEPROM_USE_WP_PIN==1)
+        HAL_GPIO_WritePin(_EEPROM_WP_GPIO, _EEPROM_WP_PIN, GPIO_PIN_SET);
+        #endif
+        at24_lock = 0;
+        return true;
+      }
+      if (HAL_GetTick() - startTime >= timeout)
+      {
+        at24_lock = 0;
+        return false;
+      }
     }
-    return at_w_byte_err;
+    else
+    {
+      #if (_EEPROM_USE_WP_PIN==1)
+      HAL_GPIO_WritePin(_EEPROM_WP_GPIO, _EEPROM_WP_PIN, GPIO_PIN_SET);
+      #endif
+      at24_lock = 0;
+      return false;
+    }
+  }
 }
 
-AT24Cxx_ERR_TypeDef AT24Cxx_write_byte_buffer( AT24Cxx_device_t* dev,
-		uint8_t* data_buf, uint16_t mem_addr, uint16_t buf_length)
+/**
+  * @brief  Read an amount of data in blocking mode to a specific memory address
+  * @param  address Internal memory address
+  * @param  data Pointer to data buffer
+  * @param  len Amount of data to be sent
+  * @param  timeout Timeout duration
+  * @retval bool status
+  */
+bool at24_read(uint16_t address, uint8_t *data, size_t len, uint32_t timeout)
 {
-	//TODO checks
-
-	uint8_t page_size = AT24Cxx_get_pg_size(dev);
-
-	uint8_t page_remaining = page_size - mem_addr % page_size;
-
-	uint8_t page_writes = (buf_length - page_remaining) / page_size;
-	uint8_t remainder_writes = (buf_length - page_remaining) % page_size;
-
-	//finish first page
-	if((mem_addr + page_remaining) > 0x00 &&
-		(mem_addr + page_remaining) < AT24Cxx_get_max_addr(dev)){
-
-		while(HAL_I2C_Mem_Write(i2c_handle,
-				AT24Cxx_BASE_ADDR_W | (AT24Cxx_SLV_ADDR << 1) ,
-				(uint16_t) mem_addr,
-				I2C_MEMADD_SIZE_8BIT,
-				data_buf,
-				page_remaining,
-				AT24Cxx_I2C_TIMOUT) != HAL_OK);
-	}else return at_w_bytes_err;
-
-	for(uint8_t current_page = 0; current_page < page_writes; current_page++){
-		if((mem_addr + page_remaining + (current_page * page_size)) > 0x00 &&
-			(mem_addr + page_remaining + (current_page * page_size)) < AT24Cxx_get_max_addr(dev)){
-
-				while(HAL_I2C_Mem_Write(i2c_handle,
-					AT24Cxx_BASE_ADDR_W | (AT24Cxx_SLV_ADDR << 1) ,
-					(uint16_t) mem_addr + page_remaining + (current_page * page_size),
-					I2C_MEMADD_SIZE_8BIT,
-					data_buf + page_remaining + (current_page * page_size),
-					page_size,
-					AT24Cxx_I2C_TIMOUT) != HAL_OK);
-		}else return at_w_bytes_err;
-	}
-
-	if(remainder_writes){
-		if((mem_addr + page_remaining + (page_writes * page_size)) > 0x00 &&
-			(mem_addr + page_remaining + (page_writes * page_size)) < AT24Cxx_get_max_addr(dev)){
-
-			while(HAL_I2C_Mem_Write(i2c_handle,
-				AT24Cxx_BASE_ADDR_W | (AT24Cxx_SLV_ADDR << 1) ,
-				(uint16_t) mem_addr + page_remaining + (page_writes * page_size),
-				I2C_MEMADD_SIZE_8BIT,
-				data_buf + page_remaining + (page_writes * page_size),
-				remainder_writes,
-				AT24Cxx_I2C_TIMOUT) != HAL_OK);
-		}else return at_w_bytes_err;
-	}
-
-	return at_ok;
+  if (at24_lock == 1)
+    return false;
+  at24_lock = 1;
+  #if (_EEPROM_USE_WP_PIN==1)
+  HAL_GPIO_WritePin(_EEPROM_WP_GPIO, _EEPROM_WP_PIN, GPIO_PIN_SET);
+  #endif
+  #if ((_EEPROM_SIZE_KBIT==1) || (_EEPROM_SIZE_KBIT==2))
+  if (HAL_I2C_Mem_Read(i2c_handle, _EEPROM_ADDRESS, address, I2C_MEMADD_SIZE_8BIT, data, len, 100) == HAL_OK)
+  #elif (_EEPROM_SIZE_KBIT == 4)
+  if (HAL_I2C_Mem_Read(i2c_handle, _EEPROM_ADDRESS | ((address & 0x0100) >> 7), (address & 0xff), I2C_MEMADD_SIZE_8BIT, data, len, 100) == HAL_OK)
+  #elif (_EEPROM_SIZE_KBIT == 8)
+  if (HAL_I2C_Mem_Read(i2c_handle, _EEPROM_ADDRESS | ((address & 0x0300) >> 7), (address & 0xff), I2C_MEMADD_SIZE_8BIT, data, len, 100) == HAL_OK)
+  #elif (_EEPROM_SIZE_KBIT==16)
+  if (HAL_I2C_Mem_Read(i2c_handle, _EEPROM_ADDRESS | ((address & 0x0700) >> 7), (address & 0xff), I2C_MEMADD_SIZE_8BIT, data, len, 100) == HAL_OK)
+  #else
+  if (HAL_I2C_Mem_Read(i2c_handle, _EEPROM_ADDRESS, address, I2C_MEMADD_SIZE_16BIT, data, len, timeout) == HAL_OK)
+  #endif
+  {
+    at24_lock = 0;
+    return true;
+  }
+  else
+  {
+    at24_lock = 0;
+    return false;
+  }
 }
 
-AT24Cxx_ERR_TypeDef AT24Cxx_read_byte( AT24Cxx_device_t* dev, uint8_t* data,
-		uint16_t mem_addr)
+/**
+  * @brief  Erase memory.
+  * @param  none
+  * @retval bool status
+  */
+bool at24_eraseChip(void)
 {
-	if(mem_addr > 0x00 && mem_addr < AT24Cxx_get_max_addr(dev)){
-		status = HAL_I2C_Mem_Read(i2c_handle,
-						AT24Cxx_BASE_ADDR_R | (AT24Cxx_SLV_ADDR << 1) ,
-						(uint16_t) mem_addr, I2C_MEMADD_SIZE_8BIT, data, 1,
-						AT24Cxx_I2C_TIMOUT);
-		if (status == HAL_OK)
-			return at_ok;
-		else {
-			return at_r_byte_err;
-		}
-	}
-	return at_r_byte_err;
+  const uint8_t eraseData[32] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF\
+    , 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  uint32_t bytes = 0;
+  while ( bytes < (_EEPROM_SIZE_KBIT * 128))
+  {
+    if (at24_write(bytes, (uint8_t*)eraseData, sizeof(eraseData), 100) == false)
+      return false;
+    bytes += sizeof(eraseData);
+  }
+  return true;
 }
 
-AT24Cxx_ERR_TypeDef AT24Cxx_read_byte_buffer( AT24Cxx_device_t* dev,
-		uint8_t* data_buf, uint16_t mem_addr, uint16_t buf_length)
-{
-	if(mem_addr > 0x00 && mem_addr < AT24Cxx_get_max_addr(dev)){
-		while(HAL_I2C_Mem_Read(i2c_handle,
-				AT24Cxx_BASE_ADDR_R | (AT24Cxx_SLV_ADDR << 1) ,
-				(uint16_t) mem_addr, I2C_MEMADD_SIZE_8BIT, data_buf, buf_length,
-				AT24Cxx_I2C_TIMOUT) != HAL_OK);
-		return at_ok;
-	}
-	return at_r_bytes_err;
-}
-
-
-//TODO ADD ARRAY FUNCTIONALITY
-
+/* EOF */
