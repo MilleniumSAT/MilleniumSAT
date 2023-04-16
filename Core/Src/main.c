@@ -70,6 +70,7 @@ static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_CAN_Init(void);
+static void MX_AT512C_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -111,6 +112,7 @@ int main(void)
   MX_GPIO_Init();
   //  GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN 2 */
+  MX_AT512C_Init();
   MX_CAN_Init();
 
 
@@ -335,6 +337,26 @@ static void MX_CAN_Init(void)
 	canMsg1.data[5] = 0x01;
 	canMsg1.data[6] = 0x01;
 	canMsg1.data[7] = 0x01;
+}
+
+static void MX_AT512C_Init(void)
+{
+	bool writeStatus = false;
+	bool readStatus = false;
+	bool eraseStatus = false;
+	#define MEM_ADDR    0x00u
+	uint8_t  wData[] = "Hello World 123";
+	uint8_t  rData[25];
+
+	if(at24_isConnected()){
+		// at24_eraseChip can take more than 30 Sec
+		eraseStatus = at24_eraseChip();
+		HAL_Delay(10);
+		writeStatus = at24_write(MEM_ADDR,wData, 15, 100);
+		HAL_Delay(10);
+		readStatus = at24_read(MEM_ADDR,rData, 15, 100);
+		HAL_Delay(10);
+	}
 }
 /* USER CODE END 4 */
 
