@@ -77,14 +77,8 @@ void RM3100_SPI_WRITE(uint8_t addr, uint8_t *data, uint16_t size)
 {
 
     HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
-
-    uint8_t buffer[2];
-    buffer[0] = addr & 0x7F;
-    buffer[1] = data[0];
-
-    HAL_SPI_Transmit(spi_handle, &buffer[0], 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(spi_handle, &buffer[1], 1, HAL_MAX_DELAY);
-
+    uint8_t buffer[2]= {addr & 0x7F, data[0]};
+    HAL_SPI_Transmit(spi_handle, &buffer, 2, HAL_MAX_DELAY);
     HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);
 }
 /*
@@ -93,13 +87,11 @@ void RM3100_SPI_WRITE(uint8_t addr, uint8_t *data, uint16_t size)
  */
 void RM3100_SPI_READ(uint8_t addr, uint8_t *data, uint16_t size)
 {
-	  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET); // digitalWrite(PIN_CS, LOW)                                    // delay(100)
-	  uint8_t buffer[2];
-	  buffer[0] = addr | 0x80;
-	  buffer[1] = 0x00;
-	  HAL_SPI_Transmit(spi_handle, &buffer[0], 1, 1000);
-	  HAL_SPI_TransmitReceive(spi_handle, &buffer, data, 1, 1000); // SPI.transfer(addr | 0x80); data = SPI.transfer(0);
-	  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);                    // digitalWrite(PIN_CS, HIGH)
+	  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
+	  uint8_t buffer[2]= {addr | 0x80};
+	  HAL_SPI_Transmit(spi_handle, buffer, 1, 1000);
+	  HAL_SPI_Receive(spi_handle, data, 1, 1000);
+	  HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_SET);
 }
 
 //newCC is the new cycle count value (16 bits) to change the data acquisition
@@ -125,7 +117,6 @@ void changeCycleCount(){
 void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
 {
   uint8_t revid = 0;
-
   RM3100_SPI_READ(RM3100_REG_REVID, &revid, 0);
   RM3100_SPI_READ(RM3100_REG_REVID, &revid, 0);
   printf("REVID ID = 0x%02X\n", revid);
@@ -172,7 +163,6 @@ RM3100_DATA RM3100_SPI_DATA()
 
   uint8_t receive_buffer[9] = { 0 };
   uint8_t send_buffer[10] = { 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0x00 };
-  // wait_dr();
 
   HAL_GPIO_WritePin(CS_GPIO, CS_PIN, GPIO_PIN_RESET);
 

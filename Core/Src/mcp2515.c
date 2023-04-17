@@ -86,10 +86,9 @@ uint8_t readRegister(const REGISTER reg)
 {
 	uint8_t ret = 0;
     startSPI();
-    uint8_t endereco = INSTRUCTION_READ;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-    endereco = reg;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    uint8_t instrucao = INSTRUCTION_READ;
+    HAL_SPI_Transmit(spi_handle, &instrucao, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &reg, 1, HAL_MAX_DELAY);
     HAL_SPI_Receive(spi_handle, &ret, 1, HAL_MAX_DELAY);
     endSPI();
 
@@ -99,10 +98,9 @@ uint8_t readRegister(const REGISTER reg)
 void readRegisters(const REGISTER reg, uint8_t values[], const uint8_t n)
 {
     startSPI();
-    uint8_t endereco = INSTRUCTION_READ;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-    endereco = reg;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    uint8_t instrucao = INSTRUCTION_READ;
+    HAL_SPI_Transmit(spi_handle, &instrucao, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &reg, 1, HAL_MAX_DELAY);
     // mcp2515 has auto-increment of address-pointer
     for (uint8_t i=0; i<n; i++) {
     	HAL_SPI_Receive(spi_handle, &values[i], 1, HAL_MAX_DELAY);
@@ -113,25 +111,21 @@ void readRegisters(const REGISTER reg, uint8_t values[], const uint8_t n)
 void setRegister(const REGISTER reg, const uint8_t value)
 {
     startSPI();
-    uint8_t endereco = INSTRUCTION_WRITE;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-    endereco = reg;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-    endereco = value;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    uint8_t instrucao = INSTRUCTION_WRITE;
+    HAL_SPI_Transmit(spi_handle, &instrucao, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &instrucao, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &value, 1, HAL_MAX_DELAY);
     endSPI();
 }
 
 void setRegisters(const REGISTER reg, const uint8_t values[], const uint8_t n)
 {
     startSPI();
-    uint8_t endereco = INSTRUCTION_WRITE;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-    endereco = reg;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    uint8_t instrucao = INSTRUCTION_WRITE;
+    HAL_SPI_Transmit(spi_handle, &instrucao, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &reg, 1, HAL_MAX_DELAY);
     for (uint8_t i=0; i<n; i++) {
-    	endereco = values[i];
-        HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+        HAL_SPI_Transmit(spi_handle, &values[i], 1, HAL_MAX_DELAY);
     }
     endSPI();
 }
@@ -139,14 +133,11 @@ void setRegisters(const REGISTER reg, const uint8_t values[], const uint8_t n)
 void modifyRegister(const REGISTER reg, const uint8_t mask, const uint8_t data)
 {
     startSPI();
-    uint8_t endereco = INSTRUCTION_BITMOD;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-    endereco = reg;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-    endereco = mask;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
-    endereco = data;
-    HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    uint8_t instrucao = INSTRUCTION_BITMOD;
+    HAL_SPI_Transmit(spi_handle, &instrucao, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &reg, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &mask, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, &data, 1, HAL_MAX_DELAY);
     endSPI();
 }
 
@@ -154,8 +145,8 @@ uint8_t getStatus(void)
 {
 	uint8_t ret = 0;
     startSPI();
-    uint8_t endereco = INSTRUCTION_READ_STATUS;
-	HAL_SPI_Transmit(spi_handle, &endereco, 1, HAL_MAX_DELAY);
+    uint8_t instrucao = INSTRUCTION_READ_STATUS;
+	HAL_SPI_Transmit(spi_handle, &instrucao, 1, HAL_MAX_DELAY);
 	HAL_SPI_Receive(spi_handle, &ret, 1, HAL_MAX_DELAY);
     endSPI();
 

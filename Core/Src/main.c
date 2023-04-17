@@ -28,7 +28,6 @@
 #include "tmp100_i2c.h"
 #include "i2c_detect.h"
 struct can_frame canMsg1;
-struct can_frame canMsg2;
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -349,8 +348,7 @@ static void MX_AT512C_Init(void)
 	uint8_t  rData[25];
 
 	if(at24_isConnected()){
-		// at24_eraseChip can take more than 30 Sec
-		eraseStatus = at24_eraseChip();
+		//eraseStatus = at24_eraseChip();
 		HAL_Delay(10);
 		writeStatus = at24_write(MEM_ADDR,wData, 15, 100);
 		HAL_Delay(10);
