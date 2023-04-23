@@ -18,6 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include <mcp2515.h>
+#include "stm32l0xx_hal.h"
+#include "stm32l0xx_hal_rtc.h"
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -27,7 +29,7 @@
 #include "rm3100_spi.h"
 #include "tmp100_i2c.h"
 #include "i2c_detect.h"
-struct can_frame canMsg1;
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,6 +61,7 @@ SPI_HandleTypeDef hspi2;
  */
 SPI_HandleTypeDef *spi_handle;
 I2C_HandleTypeDef *i2c_handle;
+RTC_HandleTypeDef hrtc;
 // UART_HandleTypeDef *uart_handle;
 
 /* USER CODE END PV */
@@ -70,6 +73,10 @@ static void MX_I2C1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_CAN_Init(void);
 static void MX_AT512C_Init(void);
+void SystemClock_ConfigLP(void);
+void MX_LPTIM1_Init(void);
+void SysTick_Init(uint32_t ticks);
+void enter_LPSleep( void );
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -111,9 +118,10 @@ int main(void)
   MX_GPIO_Init();
   //  GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN 2 */
-  MX_AT512C_Init();
+  //MX_AT512C_Init();
   MX_CAN_Init();
 
+  //MX_LPTIM1_Init();
 
   /* USER CODE END 2 */
 
@@ -122,17 +130,65 @@ int main(void)
   while (1)
   {
     TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
-    HAL_Delay(100);
+    HAL_Delay(1000);
     RM3100_DATA mag_data = RM3100_SPI_DATA();
-    HAL_Delay(100);
-	enum ERROR retorno = sendMessage1(&canMsg1);
+    HAL_Delay(1000);
+    write_data_to_eeprom(&temp, &mag_data);
     HAL_Delay(1000);
 
+//    HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+//    enter_LPSleep();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
+}
+
+void sendPackets() {
+	TMP100_DATA temp_data;
+	RM3100_DATA mag_data;
+	uint16_t pkg_count = obtainPkgCount();
+
+	// allocate an array of can_frame structs to hold the serialized data packets
+	struct can_frame frames[MAX_DATA_PACKETS];
+
+	// serialize the data packets into the can_frame array
+	uint8_t frame_index = 0;
+	for (uint16_t cnt = 0; cnt < pkg_count; cnt++) {
+		// read data from EEPROM
+		enum ERROR status = read_data_from_eeprom(&temp_data, &mag_data);
+
+		// serialize TMP100 data
+		frames[frame_index].can_id = 0x123;
+		frames[frame_index].can_dlc = sizeof(float) + sizeof(int);
+		memcpy(frames[frame_index].data, &temp_data.temp, sizeof(float));
+		memcpy(frames[frame_index].data + sizeof(float), &temp_data.status, sizeof(int));
+		frame_index++;
+
+		// serialize RM3100 data
+		frames[frame_index].can_id = 0x456;
+		frames[frame_index].can_dlc = sizeof(RM3100_DATA);
+		memcpy(frames[frame_index].data, &mag_data, sizeof(RM3100_DATA));
+		frame_index++;
+
+		// check if the maximum number of data packets per CAN message has been reached
+		if (frame_index >= MAX_DATA_PACKETS) {
+			// send the serialized data packets over CAN
+			// (this example assumes the function sendMessage1() sends a single CAN message)
+			enum ERROR status = sendCanFrames(frames, MAX_DATA_PACKETS);
+
+			// reset the frame index for the next batch of data packets
+			frame_index = 0;
+		}
+	}
+
+	// send any remaining serialized data packets over CAN
+	if (frame_index > 0) {
+		// send the serialized data packets over CAN
+		// (this example assumes the function sendMessage1() sends a single CAN message)
+		enum ERROR status = sendCanFrames(frames, frame_index);
+	}
 }
 
 /**
@@ -320,22 +376,119 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void Config_SysClk_MSI_131( void )
+{
+    // Enable the MSI
+    RCC->CR |= RCC_CR_MSION;
+    while( (RCC->CR & RCC_CR_MSIRDY) == 0 ); // Wait until MSI is ready
+
+    // Select MSI as the system clock source
+    RCC->CFGR &= ~( RCC_CFGR_SW );
+    RCC->CFGR |= RCC_CFGR_SW_MSI;
+
+    // Wait until the system clock source is MSI
+    while( (RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_MSI );
+
+    // Set MSI to 131.072 kHz
+    RCC->ICSCR &= ~( RCC_ICSCR_MSIRANGE );
+    RCC->ICSCR |= RCC_ICSCR_MSIRANGE_3; // Set MSI range to 7 (131.072 kHz)
+}
+
+void MX_LPTIM1_Init(void)
+{
+  /* Enable the LSI clock */
+  RCC->CSR |= RCC_CSR_LSION;
+  while((RCC->CSR & RCC_CSR_LSIRDY) == 0);
+
+  /* Enable the LPTIM1 clock */
+  RCC->APB1ENR |= RCC_APB1ENR_LPTIM1EN;
+
+  /* Reset LPTIM1 peripheral */
+  RCC->APB1RSTR |= RCC_APB1RSTR_LPTIM1RST;
+  RCC->APB1RSTR &= ~RCC_APB1RSTR_LPTIM1RST;
+
+  /* Configure LPTIM1 in interrupt mode */
+  LPTIM1->CR = 0;
+  LPTIM1->CFGR |= LPTIM_CFGR_PRESC_0 | LPTIM_CFGR_PRESC_1;  // Set prescaler to divide by 16
+  LPTIM1->CFGR |= LPTIM_CFGR_WAVE;                          // Set waveform to toggle on compare match
+  LPTIM1->CMP = 0xFFFF;                                     // Set compare value to maximum
+  LPTIM1->ARR = 1953;                                       // Set auto-reload value to generate interrupt every 30 seconds
+  LPTIM1->CR |= LPTIM_CR_ENABLE;                            // Enable LPTIM1
+  LPTIM1->IER |= LPTIM_IER_ARRMIE;                          // Enable interrupt on auto-reload match
+
+  /* Enable the LPTIM1 interrupt */
+  NVIC_EnableIRQ(LPTIM1_IRQn);
+}
+
+void LPTIM1_IRQHandler(void)
+{
+  /* Clear the LPTIM1 auto-reload match flag */
+  LPTIM1->ISR &= ~LPTIM_ISR_ARRM;
+
+  /* Disable LPTIM1 */
+  LPTIM1->CR &= ~LPTIM_CR_ENABLE;
+
+  /* Disable the LPTIM1 interrupt */
+  NVIC_DisableIRQ(LPTIM1_IRQn);
+
+  /* Exit sleep mode */
+  HAL_PWR_DisableSleepOnExit();
+}
+
+//void SystemClock_ConfigLP(void)
+//{
+//  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+//  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+//
+//  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_LSI;
+//  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+//  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+//  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+//  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+//  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+//  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+//  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+//  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+//  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+//  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//}
+
+void enter_LPSleep( void )
+{
+    /* 1. The Flash memory can be switched off by using the control bits
+              (SLEEP_PD in the FLASH_ACR register). This reduces power consumption
+              but increases the wake-up time. */
+    FLASH->ACR |= FLASH_ACR_SLEEP_PD;
+    /* 2. Each digital IP clock must be enabled or disabled by using the
+                RCC_APBxENR and RCC_AHBENR registers */
+    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+    /* 3. The frequency of the system clock must be decreased to not exceed the
+                frequency of f_MSI range1. */
+    // Set MSI 131.072 kHz as system clock
+    Config_SysClk_MSI_131();
+    /* 4. The regulator is forced in low-power mode by software
+                (LPSDSR bits set ) */
+    PWR->CR |= PWR_CR_LPSDSR; // voltage regulator in low-power mode during sleep
+    /* 5. Follow the steps described in Section 6.3.5: Entering low-power mode */
+    SCB->SCR &= ~( SCB_SCR_SLEEPDEEP_Msk ); // low-power mode = sleep mode
+    SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk; // reenter low-power mode after ISR
+    __WFI(); // enter low-power mode
+}
+
+
 static void MX_CAN_Init(void)
 {
 	reset();
 	setBitrate1(CAN_5KBPS);
 	setNormalMode();
-
-	canMsg1.can_id  = 0x0F6;
-	canMsg1.can_dlc = 8;
-	canMsg1.data[0] = 0x01;
-	canMsg1.data[1] = 0x01;
-	canMsg1.data[2] = 0x01;
-	canMsg1.data[3] = 0x01;
-	canMsg1.data[4] = 0x01;
-	canMsg1.data[5] = 0x01;
-	canMsg1.data[6] = 0x01;
-	canMsg1.data[7] = 0x01;
 }
 
 static void MX_AT512C_Init(void)
@@ -355,7 +508,11 @@ static void MX_AT512C_Init(void)
 		readStatus = at24_read(MEM_ADDR,rData, 15, 100);
 		HAL_Delay(10);
 	}
+
+
 }
+
+
 /* USER CODE END 4 */
 
 /**

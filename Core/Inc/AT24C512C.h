@@ -2,6 +2,7 @@
 #define	_AT24CXX_H
 
 #include "stm32l0xx_hal.h"
+#include "globalvar.h"
 
 /*
   Author:     Suman Kumar D.
@@ -15,6 +16,8 @@
 #define		_EEPROM_ADDRESS			0xA0
 #define		_EEPROM_USE_WP_PIN		0
 #define		_EEPROM_USE_IWDG		0
+#define     START_ADDRESS           0x00
+#define     MAX_TIMEOUT_MEM         100
 
 /* The AT24CXX has a hardware data protection scheme that allows the
 user to write protect the whole memory when the WP pin is at VCC. */
@@ -38,6 +41,9 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+
+uint16_t current_address = START_ADDRESS;
+uint16_t pointer_address = START_ADDRESS;
 
 /**
   * @brief  Checks if memory device is ready for communication.
@@ -73,6 +79,12 @@ bool at24_read(uint16_t address, uint8_t *data, size_t lenInBytes, uint32_t time
   * @retval bool status
   */
 bool at24_eraseChip(void);
+
+enum ERROR write_data_to_eeprom(TMP100_DATA *tmp_data, RM3100_DATA *rm_data);
+
+enum ERROR read_data_from_eeprom(TMP100_DATA *tmp_data, RM3100_DATA *rm_data);
+
+uint16_t obtainPkgCount();
 
 #ifdef __cplusplus
 }

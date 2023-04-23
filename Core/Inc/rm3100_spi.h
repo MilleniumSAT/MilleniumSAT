@@ -8,7 +8,7 @@
 #ifndef RM3100_SPI_H
 #define RM3100_SPI_H
 
-#include "stm32l0xx_hal.h"
+#include "globalvar.h"
 
 /*Definição de pino Data Ready*/
 #define DR_PIN GPIO_PIN_3 //Set pin D8 to be the Data Ready Pin
@@ -53,14 +53,6 @@
  * Estruct com as leituras nos 3 eixos em counts.
  * Para obter os dados em uT, basta dividir os valores por gain
  */
-typedef struct
-{
-	long x;
-	long y;
-	long z;
-	float gain;
-	double uT;
-} RM3100_DATA;
 
 /*variáveis externas (criadas no main do código do stm32)*/
 //extern UART_HandleTypeDef *uart_handle;
