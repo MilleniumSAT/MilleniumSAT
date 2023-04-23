@@ -16,6 +16,7 @@ typedef struct
 {
 	float temp;
 	int status;
+	uint8_t id;
 } TMP100_DATA;
 
 typedef struct
@@ -25,6 +26,7 @@ typedef struct
 	long z;
 	float gain;
 	double uT;
+	uint8_t id;
 } RM3100_DATA;
 
 enum ERROR {

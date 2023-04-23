@@ -74,6 +74,7 @@ static void MX_SPI2_Init(void);
 static void MX_CAN_Init(void);
 static void MX_AT512C_Init(void);
 void SystemClock_ConfigLP(void);
+void sendPackets(void);
 void MX_LPTIM1_Init(void);
 void SysTick_Init(uint32_t ticks);
 void enter_LPSleep( void );
@@ -136,6 +137,31 @@ int main(void)
     write_data_to_eeprom(&temp, &mag_data);
     HAL_Delay(1000);
 
+    temp = TMP100_I2C_DATA(MUL_12_bit);
+    HAL_Delay(1000);
+    mag_data = RM3100_SPI_DATA();
+    HAL_Delay(1000);
+    write_data_to_eeprom(&temp, &mag_data);
+    HAL_Delay(1000);
+
+    temp = TMP100_I2C_DATA(MUL_12_bit);
+    HAL_Delay(1000);
+    mag_data = RM3100_SPI_DATA();
+    HAL_Delay(1000);
+    write_data_to_eeprom(&temp, &mag_data);
+    HAL_Delay(1000);
+
+
+    temp = TMP100_I2C_DATA(MUL_12_bit);
+    HAL_Delay(1000);
+    mag_data = RM3100_SPI_DATA();
+    HAL_Delay(1000);
+    write_data_to_eeprom(&temp, &mag_data);
+    HAL_Delay(1000);
+
+    sendPackets();
+
+
 //    HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 //    enter_LPSleep();
     /* USER CODE END WHILE */
@@ -146,50 +172,50 @@ int main(void)
 }
 
 void sendPackets() {
-	TMP100_DATA temp_data;
-	RM3100_DATA mag_data;
-	uint16_t pkg_count = obtainPkgCount();
+    TMP100_DATA temp_data;
+    RM3100_DATA mag_data;
+    uint16_t pkg_count = obtainPkgCount();
+    for (uint16_t cnt = 0; cnt < pkg_count; cnt++) {
+        enum ERROR status = read_data_from_eeprom(&temp_data, &mag_data);
 
-	// allocate an array of can_frame structs to hold the serialized data packets
-	struct can_frame frames[MAX_DATA_PACKETS];
+        // Serialize temperature data
+        uint8_t temp_data_serialized[8];
+        memcpy(temp_data_serialized, &temp_data.temp, sizeof(temp_data.temp));
+        memcpy(temp_data_serialized + sizeof(temp_data.temp), &temp_data.status, sizeof(temp_data.status));
 
-	// serialize the data packets into the can_frame array
-	uint8_t frame_index = 0;
-	for (uint16_t cnt = 0; cnt < pkg_count; cnt++) {
-		// read data from EEPROM
-		enum ERROR status = read_data_from_eeprom(&temp_data, &mag_data);
+        // Serialize magnetometer data
+        uint8_t mag_data_serialized[24];
+        memcpy(mag_data_serialized, &mag_data.x, sizeof(mag_data.x));
+        memcpy(mag_data_serialized + sizeof(mag_data.x), &mag_data.y, sizeof(mag_data.y));
+        memcpy(mag_data_serialized + 2 * sizeof(mag_data.x), &mag_data.z, sizeof(mag_data.z));
+        memcpy(mag_data_serialized + 3 * sizeof(mag_data.x), &mag_data.gain, sizeof(mag_data.gain));
+        memcpy(mag_data_serialized + 3 * sizeof(mag_data.x) + sizeof(mag_data.gain), &mag_data.uT, sizeof(mag_data.uT));
 
-		// serialize TMP100 data
-		frames[frame_index].can_id = 0x123;
-		frames[frame_index].can_dlc = sizeof(float) + sizeof(int);
-		memcpy(frames[frame_index].data, &temp_data.temp, sizeof(float));
-		memcpy(frames[frame_index].data + sizeof(float), &temp_data.status, sizeof(int));
-		frame_index++;
+        // Create CAN frames and send them
+        struct can_frame frames[3];
+        int frame_index = 0;
 
-		// serialize RM3100 data
-		frames[frame_index].can_id = 0x456;
-		frames[frame_index].can_dlc = sizeof(RM3100_DATA);
-		memcpy(frames[frame_index].data, &mag_data, sizeof(RM3100_DATA));
-		frame_index++;
+        frames[frame_index].can_id = 0x123;
+        frames[frame_index].can_dlc = 8;
+        memcpy(frames[frame_index].data, temp_data_serialized, sizeof(temp_data_serialized));
+        frame_index++;
 
-		// check if the maximum number of data packets per CAN message has been reached
-		if (frame_index >= MAX_DATA_PACKETS) {
-			// send the serialized data packets over CAN
-			// (this example assumes the function sendMessage1() sends a single CAN message)
-			enum ERROR status = sendCanFrames(frames, MAX_DATA_PACKETS);
+        frames[frame_index].can_id = 0x456;
+        frames[frame_index].can_dlc = 8;
+        memcpy(frames[frame_index].data, mag_data_serialized, 8);
+        frame_index++;
 
-			// reset the frame index for the next batch of data packets
-			frame_index = 0;
-		}
-	}
+        frames[frame_index].can_id = 0x789 + 1;
+        frames[frame_index].can_dlc = 8;
+        memcpy(frames[frame_index].data, mag_data_serialized + 8, sizeof(mag_data_serialized) - 8);
 
-	// send any remaining serialized data packets over CAN
-	if (frame_index > 0) {
-		// send the serialized data packets over CAN
-		// (this example assumes the function sendMessage1() sends a single CAN message)
-		enum ERROR status = sendCanFrames(frames, frame_index);
-	}
+        for (int i = 0; i < 3; i++) {
+            enum ERROR retorno = sendMessage1(&frames[i]);
+            HAL_Delay(10);
+        }
+    }
 }
+
 
 /**
  * @brief System Clock Configuration

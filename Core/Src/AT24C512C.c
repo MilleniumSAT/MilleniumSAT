@@ -61,7 +61,8 @@ bool at24_isConnected(void)
 }
 
 uint16_t obtainPkgCount(){
-	return current_address/pointer_address;;
+	uint16_t qntd = (current_address - pointer_address)/pkt_size;
+	return qntd;
 }
 
 /**
@@ -189,6 +190,10 @@ bool at24_eraseChip(void)
 
 enum ERROR write_data_to_eeprom(TMP100_DATA *tmp_data, RM3100_DATA *rm_data)
 {
+  // Write ID value to EEPROM
+  at24_write(current_address, (uint8_t *)&id_pkt, sizeof(id_pkt), MAX_TIMEOUT_MEM);
+  current_address += sizeof(id_pkt);
+  id_pkt++;
 
   // Write temperature value to EEPROM
   at24_write(current_address, (uint8_t *)&tmp_data->temp, sizeof(tmp_data->temp), MAX_TIMEOUT_MEM);
@@ -244,6 +249,11 @@ enum ERROR write_data_to_eeprom(TMP100_DATA *tmp_data, RM3100_DATA *rm_data)
 
 enum ERROR read_data_from_eeprom(TMP100_DATA *tmp_data, RM3100_DATA *rm_data)
 {
+  // Read ID value from EEPROM
+  at24_read(pointer_address, (uint8_t *)&tmp_data->id, sizeof(tmp_data->id), MAX_TIMEOUT_MEM);
+  rm_data->id = tmp_data->id;
+  pointer_address += sizeof(tmp_data->id);
+
   // Read temperature value from EEPROM
   at24_read(pointer_address, (uint8_t *)&tmp_data->temp, sizeof(tmp_data->temp), MAX_TIMEOUT_MEM);
   pointer_address += sizeof(tmp_data->temp);

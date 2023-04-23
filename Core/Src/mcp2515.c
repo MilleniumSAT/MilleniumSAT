@@ -624,24 +624,24 @@ enum ERROR sendMessage(const enum TXBn txbn, const struct can_frame *frame)
     return ERROR_OK;
 }
 
-//enum ERROR sendMessage1(const struct can_frame *frame)
-//{
-//    if (frame->can_dlc > CAN_MAX_DLEN) {
-//        return ERROR_FAILTX;
-//    }
-//
-//    enum TXBn txBuffers[N_TXBUFFERS] = {TXB0, TXB1, TXB2};
-//
-//    for (int i=0; i<N_TXBUFFERS; i++) {
-//        const struct TXBn_REGS *txbuf = &TXB[txBuffers[i]];
-//        uint8_t ctrlval = readRegister(txbuf->CTRL);
-//        if ( (ctrlval & TXB_TXREQ) == 0 ) {
-//            return sendMessage(txBuffers[i], frame);
-//        }
-//    }
-//
-//    return ERROR_ALLTXBUSY;
-//}
+enum ERROR sendMessage1(const struct can_frame *frame)
+{
+    if (frame->can_dlc > CAN_MAX_DLEN) {
+        return ERROR_FAILTX;
+    }
+
+    enum TXBn txBuffers[N_TXBUFFERS] = {TXB0, TXB1, TXB2};
+
+    for (int i=0; i<N_TXBUFFERS; i++) {
+        const struct TXBn_REGS *txbuf = &TXB[txBuffers[i]];
+        uint8_t ctrlval = readRegister(txbuf->CTRL);
+        if ( (ctrlval & TXB_TXREQ) == 0 ) {
+            return sendMessage(txBuffers[i], frame);
+        }
+    }
+
+    return ERROR_ALLTXBUSY;
+}
 
 enum ERROR sendCanFrames(const struct can_frame *frames, uint8_t num_frames)
 {

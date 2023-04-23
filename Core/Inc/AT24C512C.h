@@ -18,6 +18,7 @@
 #define		_EEPROM_USE_IWDG		0
 #define     START_ADDRESS           0x00
 #define     MAX_TIMEOUT_MEM         100
+#define     pkt_size                42
 
 /* The AT24CXX has a hardware data protection scheme that allows the
 user to write protect the whole memory when the WP pin is at VCC. */
@@ -44,6 +45,7 @@ extern "C" {
 
 uint16_t current_address = START_ADDRESS;
 uint16_t pointer_address = START_ADDRESS;
+uint8_t id_pkt = START_ADDRESS;
 
 /**
   * @brief  Checks if memory device is ready for communication.
