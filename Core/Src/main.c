@@ -137,28 +137,6 @@ int main(void)
     write_data_to_eeprom(&temp, &mag_data);
     HAL_Delay(1000);
 
-    temp = TMP100_I2C_DATA(MUL_12_bit);
-    HAL_Delay(1000);
-    mag_data = RM3100_SPI_DATA();
-    HAL_Delay(1000);
-    write_data_to_eeprom(&temp, &mag_data);
-    HAL_Delay(1000);
-
-    temp = TMP100_I2C_DATA(MUL_12_bit);
-    HAL_Delay(1000);
-    mag_data = RM3100_SPI_DATA();
-    HAL_Delay(1000);
-    write_data_to_eeprom(&temp, &mag_data);
-    HAL_Delay(1000);
-
-
-    temp = TMP100_I2C_DATA(MUL_12_bit);
-    HAL_Delay(1000);
-    mag_data = RM3100_SPI_DATA();
-    HAL_Delay(1000);
-    write_data_to_eeprom(&temp, &mag_data);
-    HAL_Delay(1000);
-
     sendPackets();
 
 
