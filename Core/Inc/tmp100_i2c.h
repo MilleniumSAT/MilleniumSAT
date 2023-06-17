@@ -12,7 +12,7 @@
 #include "globalvar.h"
 
 /* Endereço i2C do sensor*/
-#define TMP100_ADDR 0x4F
+#define TMP100_ADDR 0x48
 
 /* Endereços dos registradores internos */
 #define TEMP_REG					0x00

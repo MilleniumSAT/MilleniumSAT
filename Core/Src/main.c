@@ -115,6 +115,9 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_I2C1_Init();
+
+  //i2c_detect();
+
   MX_SPI2_Init();
   MX_GPIO_Init();
   //  GPIO_InitTypeDef GPIO_InitStruct = {0};
