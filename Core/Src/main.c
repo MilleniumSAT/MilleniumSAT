@@ -62,6 +62,12 @@ SPI_HandleTypeDef hspi2;
 SPI_HandleTypeDef *spi_handle;
 I2C_HandleTypeDef *i2c_handle;
 RTC_HandleTypeDef hrtc;
+
+typedef enum {
+    STATE_READ_SENSORS,
+    STATE_WAIT_3_MINUTES
+} State;
+
 // UART_HandleTypeDef *uart_handle;
 
 /* USER CODE END PV */
@@ -93,63 +99,66 @@ void enter_LPSleep( void );
  */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
   SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
   MX_I2C1_Init();
 
   //i2c_detect();
 
   MX_SPI2_Init();
   MX_GPIO_Init();
-  //  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN 2 */
+
   //MX_AT512C_Init();
+
   MX_CAN_Init();
 
   //MX_LPTIM1_Init();
 
-  /* USER CODE END 2 */
+  State currentState = STATE_READ_SENSORS;
+  uint32_t previousTime = HAL_GetTick();
+  uint32_t currentTime;
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   while (1)
   {
-    TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
-    HAL_Delay(1000);
-    RM3100_DATA mag_data = RM3100_SPI_DATA();
-    HAL_Delay(1000);
-    write_data_to_eeprom(&temp, &mag_data);
-    HAL_Delay(1000);
+	  currentTime = HAL_GetTick();
 
-    sendPackets();
+	  switch (currentState)
+	  {
+		  case STATE_READ_SENSORS:
+		  {
+			  TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
+			  RM3100_DATA mag_data = RM3100_SPI_DATA();
+			  write_data_to_eeprom(&temp, &mag_data);
 
+			  // Transição para o próximo estado
+			  currentState = STATE_WAIT_3_MINUTES;
+			  previousTime = currentTime;
+			  break;
+		  }
 
-//    HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
-//    enter_LPSleep();
-    /* USER CODE END WHILE */
+		  case STATE_WAIT_3_MINUTES:
+		  {
+			  // Verifica se passaram 3 minutos desde a última leitura
+			  if (currentTime - previousTime >= (3 * 60 * 1000))
+			  {
+				  sendPackets();
+				  // Transição para o próximo estado de leitura
+				  currentState = STATE_READ_SENSORS;
+			  }
+			  else
+			  {
+				  //Enter in sleep mode
+				  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+			  }
+			  break;
+		  }
 
-    /* USER CODE BEGIN 3 */
+		  default:
+			  break;
+	  }
   }
-  /* USER CODE END 3 */
+/* USER CODE END 3 */
 }
 
 void sendPackets() {
