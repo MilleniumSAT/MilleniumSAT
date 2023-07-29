@@ -147,18 +147,6 @@ int main(void) {
 			UART_SendData((uint8_t*) "[MAIN] Starting reading state.\r\n");
 			TMP100_DATA temp = TMP100_I2C_DATA(MUL_12_bit);
 			RM3100_DATA mag_data = RM3100_SPI_DATA();
-
-			// Formatar a string de debug com os valores lidos
-			sprintf(debugMessage, "[MAIN] Tmp: %.2f, Sts: %d\r\n", temp.temp,
-					temp.status);
-			UART_SendData((uint8_t*) debugMessage);
-
-			sprintf(debugMessage,
-					"[MAIN] Mag: X: %ld, Y: %ld, Z: %ld, Gn: %.2f, uT: %f\r\n",
-					mag_data.x, mag_data.y, mag_data.z, mag_data.gain,
-					mag_data.uT);
-			UART_SendData((uint8_t*) debugMessage);
-
 			write_data_to_eeprom(&temp, &mag_data);
 
 			UART_SendData(
