@@ -29,8 +29,6 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l0xx_hal.h"
 
-#define MAX_DATA_PACKETS 8
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
