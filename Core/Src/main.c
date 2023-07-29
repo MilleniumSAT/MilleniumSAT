@@ -125,8 +125,8 @@ int main(void) {
 	MX_USART1_UART_Init();
 	/* USER CODE BEGIN 2 */
 
-	//MX_AT512C_Init();
-	//MX_CAN_Init();
+	MX_AT512C_Init();
+	MX_CAN_Init();
 	State currentState = STATE_READ_SENSORS;
 	uint32_t previousTimeRead = HAL_GetTick();
 	uint32_t previousTimesSend = HAL_GetTick();
