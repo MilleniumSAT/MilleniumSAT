@@ -260,7 +260,7 @@ enum ERROR write_data_to_eeprom(TMP100_DATA *tmp_data, RM3100_DATA *rm_data) {
 			"Y: %ld, "
 			"Z: %ld, "
 			"Gain: %.3f, "
-			"uT: %.3f } \r\n", tmp_data->id, tmp_data->temp, tmp_data->status,
+			"uT: %.3f } \r\n", id_pkt, tmp_data->temp, tmp_data->status,
 			rm_data->x, rm_data->y, rm_data->z, rm_data->gain, rm_data->uT);
 
 	// Enviar dados de debug

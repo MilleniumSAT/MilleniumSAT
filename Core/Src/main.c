@@ -99,7 +99,7 @@ static void MX_AT512C_Init(void);
  */
 int main(void) {
 	/* USER CODE BEGIN 1 */
-	UART_SendData((uint8_t*) "[MAIN] Initializing ST-MILLENIUM-SAT32...\r\n"); //Doesn't go to serial
+
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -119,17 +119,17 @@ int main(void) {
 	/* USER CODE END SysInit */
 
 	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
 	MX_I2C1_Init();
 	MX_SPI2_Init();
+	MX_GPIO_Init();
 	MX_USART1_UART_Init();
 	/* USER CODE BEGIN 2 */
 
-	MX_AT512C_Init();
-	MX_CAN_Init();
-
+	//MX_AT512C_Init();
+	//MX_CAN_Init();
 	State currentState = STATE_READ_SENSORS;
-	uint32_t previousTime = HAL_GetTick();
+	uint32_t previousTimeRead = HAL_GetTick();
+	uint32_t previousTimesSend = HAL_GetTick();
 	uint32_t currentTime;
 	UART_SendData((uint8_t*) "[MAIN] ST-MILLENIUM-SAT32 initialized.\r\n");
 
@@ -161,24 +161,26 @@ int main(void) {
 
 			write_data_to_eeprom(&temp, &mag_data);
 
-
 			UART_SendData(
 					(uint8_t*) "[MAIN] Hibernation starts now (3 minutes)...\r\n");
 			currentState = STATE_WAIT;
-			previousTime = currentTime;
 			break;
 		}
 
 		case STATE_WAIT: {
 			// Verifica se passaram 3 minutos desde a última leitura
 
-			if (currentTime - previousTime >= (10 * 1000)) {
-				currentState = STATE_READ_SENSORS;
-			} else if (currentTime - previousTime >= (3 * 60 * 1000)) {
+			if (currentTime - previousTimesSend >= (60 * 60 * 1000)) {
 				UART_SendData(
 						(uint8_t*) "[MAIN] Hibernation finished. Starting to send packages....\r\n");
 				sendPackets();
+				previousTimesSend = currentTime;
 				currentState = STATE_READ_SENSORS;
+			} else if (currentTime - previousTimeRead >= (60 * 3 * 1000)) {
+				UART_SendData(
+						(uint8_t*) "[MAIN] Starting to read sensor....\r\n");
+				currentState = STATE_READ_SENSORS;
+				previousTimeRead = currentTime;
 			} else {
 				HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON,
 				PWR_SLEEPENTRY_WFI);
