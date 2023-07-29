@@ -643,6 +643,33 @@ enum ERROR sendMessage1(const struct can_frame *frame)
     return ERROR_ALLTXBUSY;
 }
 
+enum ERROR sendCanFrames(const struct can_frame *frames, uint8_t num_frames)
+{
+    enum ERROR error_status;
+
+    for (int i = 0; i < num_frames; i++) {
+        if (frames[i].can_dlc > CAN_MAX_DLEN) {
+            return ERROR_FAILTX;
+        }
+
+        enum TXBn txBuffers[N_TXBUFFERS] = {TXB0, TXB1, TXB2};
+
+        for (int j=0; j<N_TXBUFFERS; j++) {
+            const struct TXBn_REGS *txbuf = &TXB[txBuffers[j]];
+            uint8_t ctrlval = readRegister(txbuf->CTRL);
+            if ( (ctrlval & TXB_TXREQ) == 0 ) {
+                error_status = sendMessage(txBuffers[j], &frames[i]);
+                if (error_status != ERROR_OK) {
+                    return error_status;
+                }
+                break;
+            }
+        }
+    }
+
+    return ERROR_OK;
+}
+
 enum ERROR readMessage(const enum RXBn rxbn, struct can_frame *frame)
 {
     const struct RXBn_REGS *rxb = &RXB[rxbn];

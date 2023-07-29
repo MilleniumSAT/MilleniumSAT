@@ -4,6 +4,7 @@
 
 #include "can.h"
 #include "stdbool.h"
+#include "globalvar.h"
 #include <stdint.h>
 
 
@@ -211,15 +212,6 @@ CLKOUT_DIV1 = 0x0,
 CLKOUT_DIV2 = 0x1,
 CLKOUT_DIV4 = 0x2,
 CLKOUT_DIV8 = 0x3,
-};
-
-enum ERROR {
-ERROR_OK        = 0,
-ERROR_FAIL      = 1,
-ERROR_ALLTXBUSY = 2,
-ERROR_FAILINIT  = 3,
-ERROR_FAILTX    = 4,
-ERROR_NOMSG     = 5
 };
 
 enum MASK {
@@ -484,7 +476,8 @@ enum ERROR setFilter(const enum RXF num, const bool ext, const uint32_t ulData);
 enum ERROR sendMessage(const enum TXBn txbn, const struct can_frame *frame);
 enum ERROR sendMessage1(const struct can_frame *frame);
 enum ERROR readMessage(const enum RXBn rxbn, struct can_frame *frame);
-enum ERROR readMessage1(struct can_frame *frame);
+//enum ERROR readMessage1(struct can_frame *frame);
+enum ERROR sendCanFrames(const struct can_frame *frames, uint8_t num_frames);
 bool checkReceive(void);
 bool checkError(void);
 uint8_t getErrorFlags(void);

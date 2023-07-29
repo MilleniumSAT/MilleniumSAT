@@ -9,11 +9,10 @@
 #ifndef TMP100_I2C_H
 #define TMP100_I2C_H
 
-#include <stdint.h>
-#include "stm32l0xx_hal.h"
+#include "globalvar.h"
 
 /* Endereço i2C do sensor*/
-#define TMP100_ADDR 0x4F
+#define TMP100_ADDR 0x48
 
 /* Endereços dos registradores internos */
 #define TEMP_REG					0x00
@@ -50,12 +49,6 @@
 # define	MUL_10_bit			2500
 # define	MUL_11_bit			1250
 # define	MUL_12_bit			625
-
-typedef struct
-{
-	float temp;
-	int status:1;
-} TMP100_DATA;
 
 /*variáveis externas (criadas no main do código do stm32)*/
 //extern UART_HandleTypeDef *uart_handle;
