@@ -132,6 +132,7 @@ int main(void) {
 	uint32_t previousTimesSend = HAL_GetTick();
 	uint32_t currentTime;
 	UART_SendData((uint8_t*) "[MAIN] ST-MILLENIUM-SAT32 initialized.\r\n");
+	//printAllRegisters();
 
 	/* USER CODE END 2 */
 
@@ -149,6 +150,11 @@ int main(void) {
 			RM3100_DATA mag_data = RM3100_SPI_DATA();
 			write_data_to_eeprom(&temp, &mag_data);
 
+
+
+
+			sendPackets();
+
 			UART_SendData(
 					(uint8_t*) "[MAIN] Hibernation starts now (3 minutes)...\r\n");
 			currentState = STATE_WAIT;
@@ -164,7 +170,7 @@ int main(void) {
 				sendPackets();
 				previousTimesSend = currentTime;
 				currentState = STATE_READ_SENSORS;
-			} else if (currentTime - previousTimeRead >= (60 * 3 * 1000)) {
+			} else if (currentTime - previousTimeRead >= ( 60 * 3 * 1000)) {
 				UART_SendData(
 						(uint8_t*) "[MAIN] Starting to read sensor....\r\n");
 				currentState = STATE_READ_SENSORS;
@@ -557,6 +563,47 @@ void sendPackets() {
 		}
 	}
 }
+
+void sendTestPackets() {
+    // Create CAN frames
+    struct can_frame frames[3];
+
+    // Create test data
+    uint32_t temp_value = 0x11223344;
+    uint16_t status_value = 0x55AA;
+    uint32_t mag_x = 0x778899AA;
+    uint32_t mag_y = 0xBBCCDDEE;
+    uint32_t mag_z = 0xFF001122;
+    uint16_t mag_gain = 0x1234;
+    uint32_t mag_uT = 0x567890AB;
+
+    // Serialize and assign test data to frames
+    frames[0].can_id = 0x123;
+    frames[0].can_dlc = 8;
+    memcpy(frames[0].data, &temp_value, sizeof(temp_value));
+    memcpy(frames[0].data + sizeof(temp_value), &status_value, sizeof(status_value));
+
+    frames[1].can_id = 0x456;
+    frames[1].can_dlc = 8;
+    memcpy(frames[1].data, &mag_x, sizeof(mag_x));
+    memcpy(frames[1].data + sizeof(mag_x), &mag_y, sizeof(mag_y));
+    memcpy(frames[1].data + 2 * sizeof(mag_x), &mag_z, sizeof(mag_z));
+    memcpy(frames[1].data + 3 * sizeof(mag_x), &mag_gain, sizeof(mag_gain));
+    memcpy(frames[1].data + 3 * sizeof(mag_x) + sizeof(mag_gain), &mag_uT, sizeof(mag_uT));
+
+    frames[2].can_id = 0x789 + 1;
+    frames[2].can_dlc = 8;
+    memcpy(frames[2].data, &mag_z, sizeof(mag_z));
+    memcpy(frames[2].data + sizeof(mag_z), &mag_gain, sizeof(mag_gain));
+    memcpy(frames[2].data + 2 * sizeof(mag_z), &mag_uT, sizeof(mag_uT));
+
+    // Send frames
+    for (int i = 0; i < 3; i++) {
+        enum ERROR retorno = sendMessage1(&frames[i]);
+        HAL_Delay(10);
+    }
+}
+
 
 static void MX_CAN_Init(void) {
 	reset();

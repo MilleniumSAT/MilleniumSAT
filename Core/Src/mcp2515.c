@@ -22,12 +22,10 @@ MCP2515(const uint8_t _CS, const uint32_t _SPI_CLOCK)
 
 void startSPI() {
 	HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_RESET);
-	HAL_Delay(1);
 }
 
 void endSPI() {
 	HAL_GPIO_WritePin(MCP_CS_GPIO, MCP_CS_PIN, GPIO_PIN_SET);
-	HAL_Delay(1);
 }
 
 enum ERROR reset(void)
@@ -82,17 +80,13 @@ enum ERROR reset(void)
     return ERROR_OK;
 }
 
-uint8_t readRegister(const REGISTER reg)
+uint8_t readRegister(const REGISTER reg, uint8_t *data)
 {
-	uint8_t ret = 0;
-    startSPI();
-    uint8_t instrucao = INSTRUCTION_READ;
-    HAL_SPI_Transmit(spi_handle, &instrucao, 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(spi_handle, &reg, 1, HAL_MAX_DELAY);
-    HAL_SPI_Receive(spi_handle, &ret, 1, HAL_MAX_DELAY);
-    endSPI();
-
-    return ret;
+  startSPI();
+  HAL_SPI_Transmit(spi_handle, (uint8_t) INSTRUCTION_READ, 1, 1000);
+  HAL_SPI_Transmit(spi_handle, (uint8_t) reg, 1, HAL_MAX_DELAY);
+  HAL_SPI_Receive(spi_handle, data, 1, 1000);
+  endSPI();
 }
 
 void readRegisters(const REGISTER reg, uint8_t values[], const uint8_t n)
@@ -112,9 +106,8 @@ void setRegister(const REGISTER reg, const uint8_t value)
 {
     startSPI();
     uint8_t instrucao = INSTRUCTION_WRITE;
-    HAL_SPI_Transmit(spi_handle, &instrucao, 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(spi_handle, &instrucao, 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(spi_handle, &value, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, instrucao, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, value, 1, HAL_MAX_DELAY);
     endSPI();
 }
 
@@ -122,8 +115,8 @@ void setRegisters(const REGISTER reg, const uint8_t values[], const uint8_t n)
 {
     startSPI();
     uint8_t instrucao = INSTRUCTION_WRITE;
-    HAL_SPI_Transmit(spi_handle, &instrucao, 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(spi_handle, &reg, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, instrucao, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(spi_handle, (uint8_t) reg, 1, HAL_MAX_DELAY);
     for (uint8_t i=0; i<n; i++) {
         HAL_SPI_Transmit(spi_handle, &values[i], 1, HAL_MAX_DELAY);
     }
@@ -178,6 +171,15 @@ enum ERROR setNormalMode()
     return setMode(CANCTRL_REQOP_NORMAL);
 }
 
+void printAllRegisters() {
+    printf("Register Values:\n");
+    for (REGISTER reg = MCP_RXF0SIDH; reg <= MCP_RXB1DATA; reg++) {
+    	uint8_t registro = 0;
+        readRegister(reg, &registro);
+         printf("Register 0x%02X: Value 0x%02X\n", reg, registro);
+    }
+}
+
 enum ERROR setMode(const CANCTRL_REQOP_MODE mode)
 {
     modifyRegister(MCP_CANCTRL, CANCTRL_REQOP, mode);
@@ -187,7 +189,8 @@ enum ERROR setMode(const CANCTRL_REQOP_MODE mode)
 
     bool modeMatch = false;
     while (HAL_GetTick() < endTime) { // Loop until the end time is reached
-        uint8_t newmode = readRegister(MCP_CANSTAT);
+        uint8_t newmode = 0;
+        readRegister(MCP_CANSTAT, &newmode);
         newmode &= CANSTAT_OPMOD;
 
         modeMatch = newmode == mode;
@@ -617,7 +620,8 @@ enum ERROR sendMessage(const enum TXBn txbn, const struct can_frame *frame)
 
     modifyRegister(txbuf->CTRL, TXB_TXREQ, TXB_TXREQ);
 
-    uint8_t ctrl = readRegister(txbuf->CTRL);
+    uint8_t ctrl = 0;
+    readRegister(txbuf->CTRL, &ctrl);
     if ((ctrl & (TXB_ABTF | TXB_MLOA | TXB_TXERR)) != 0) {
         return ERROR_FAILTX;
     }
@@ -634,7 +638,8 @@ enum ERROR sendMessage1(const struct can_frame *frame)
 
     for (int i=0; i<N_TXBUFFERS; i++) {
         const struct TXBn_REGS *txbuf = &TXB[txBuffers[i]];
-        uint8_t ctrlval = readRegister(txbuf->CTRL);
+        uint8_t ctrlval = 0;
+        readRegister(txbuf->CTRL, &ctrlval);
         if ( (ctrlval & TXB_TXREQ) == 0 ) {
             return sendMessage(txBuffers[i], frame);
         }
@@ -656,7 +661,8 @@ enum ERROR sendCanFrames(const struct can_frame *frames, uint8_t num_frames)
 
         for (int j=0; j<N_TXBUFFERS; j++) {
             const struct TXBn_REGS *txbuf = &TXB[txBuffers[j]];
-            uint8_t ctrlval = readRegister(txbuf->CTRL);
+            uint8_t ctrlval = 0;
+            readRegister(txbuf->CTRL, &ctrlval);
             if ( (ctrlval & TXB_TXREQ) == 0 ) {
                 error_status = sendMessage(txBuffers[j], &frames[i]);
                 if (error_status != ERROR_OK) {
@@ -692,7 +698,8 @@ enum ERROR readMessage(const enum RXBn rxbn, struct can_frame *frame)
         return ERROR_FAIL;
     }
 
-    uint8_t ctrl = readRegister(rxb->CTRL);
+    uint8_t ctrl = 0;
+    readRegister(rxb->CTRL, &ctrl);
     if (ctrl & RXBnCTRL_RTR) {
         id |= CAN_RTR_FLAG;
     }
@@ -746,7 +753,9 @@ bool checkError(void)
 
 uint8_t getErrorFlags(void)
 {
-    return readRegister(MCP_EFLG);
+	uint8_t registro = 0;
+    readRegister(MCP_EFLG, &registro);
+    return registro;
 }
 
 void clearRXnOVRFlags(void)
@@ -756,7 +765,9 @@ void clearRXnOVRFlags(void)
 
 uint8_t getInterrupts(void)
 {
-    return readRegister(MCP_CANINTF);
+	uint8_t registro = 0;
+    readRegister(MCP_CANINTF, &registro);
+    return registro;
 }
 
 void clearInterrupts(void)
@@ -766,7 +777,9 @@ void clearInterrupts(void)
 
 uint8_t getInterruptMask(void)
 {
-    return readRegister(MCP_CANINTE);
+    uint8_t registro = 0;
+    readRegister(MCP_CANINTE, &registro);
+    return registro;
 }
 
 void clearTXInterrupts(void)
@@ -801,10 +814,14 @@ void clearERRIF()
 
 uint8_t errorCountRX(void)
 {
-    return readRegister(MCP_REC);
+	uint8_t registro = 0;
+    readRegister(MCP_REC, &registro);
+    return registro;
 }
 
 uint8_t errorCountTX(void)
 {
-    return readRegister(MCP_TEC);
+	uint8_t registro = 0;
+    readRegister(MCP_TEC, &registro);
+    return registro;
 }

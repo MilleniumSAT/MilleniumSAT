@@ -452,7 +452,7 @@ void endSPI();
 
 enum ERROR setMode(const CANCTRL_REQOP_MODE mode);
 
-uint8_t readRegister(const REGISTER reg);
+uint8_t readRegister(const REGISTER reg, uint8_t *data);
 void readRegisters(const REGISTER reg, uint8_t values[], const uint8_t n);
 void setRegister(const REGISTER reg, const uint8_t value);
 void setRegisters(const REGISTER reg, const uint8_t values[], const uint8_t n);
@@ -476,6 +476,7 @@ enum ERROR setFilter(const enum RXF num, const bool ext, const uint32_t ulData);
 enum ERROR sendMessage(const enum TXBn txbn, const struct can_frame *frame);
 enum ERROR sendMessage1(const struct can_frame *frame);
 enum ERROR readMessage(const enum RXBn rxbn, struct can_frame *frame);
+void printAllRegisters();
 //enum ERROR readMessage1(struct can_frame *frame);
 enum ERROR sendCanFrames(const struct can_frame *frames, uint8_t num_frames);
 bool checkReceive(void);

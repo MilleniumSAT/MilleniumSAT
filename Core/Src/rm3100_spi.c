@@ -131,7 +131,6 @@ void RM3100_SPI_SETUP(GPIO_InitTypeDef *GPIO_InitStruct)
   RM3100_SPI_READ(RM3100_REG_CCX0, &cc2, 0);
 
   cycleCount = (cc1 << 8) | cc2;
-  printf("Cycle Counts = %u\n", (uint) cycleCount);
 
  float gain = (0.3671 * (float)cycleCount) + 1.5;
 
